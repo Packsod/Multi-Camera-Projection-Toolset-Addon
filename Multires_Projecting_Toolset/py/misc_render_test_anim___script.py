@@ -87,9 +87,8 @@ except Exception:
 
 set_settings('RENDERED', False, video_path, 'MPEG4', 50)
 
-# Set start frame to 1
-bpy.context.scene.frame_start = 1
-# jump to frame 1, beacuse If per_camera_resolution addon is enabled,
+# no need to set start frame to 1, but need to jump to frame 1
+# beacuse If per_camera_resolution addon is enabled,
 # Therefore, need to specify the rendering camera, 
 # Otherwise it will default to using the first activated projection mapping camera, 
 # that has a different custom resolution.
