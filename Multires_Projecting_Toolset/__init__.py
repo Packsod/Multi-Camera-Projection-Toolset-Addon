@@ -122,76 +122,38 @@ class MultiresProjectingPanel(bpy.types.Panel):
 
     def draw(self, context):
         layout = self.layout
-        if context.space_data.type == 'VIEW_3D':
-            for category_name in ["mp_vcol_bake", "mp_Combo_op", "mp_cam_and_tex", "mp_misc"]:
-                category = categories[category_name]
-                box = layout.box()
-                row = box.row()
-                row.alignment = 'EXPAND'
-                row.prop(context.scene, category["prop_name"], icon="TRIA_DOWN" if getattr(context.scene, category["prop_name"]) else "TRIA_RIGHT", emboss=False, text=category_name)
-                if getattr(context.scene, category["prop_name"]):
-                    col = box.column(align=True)
-                    i = 0
-                    for title, size in category.get("row_data", []):
-                        if size == 0:
-                            # Add an empty column as a placeholder with increased gap
-                            col.separator(factor=1.5)
-                        else:
-                            operator_row = category["operators"][i:i + size]
-                            i += size  # Move the index update here to avoid double printing
-                            if title:
-                                col.label(text=title)
-                            row = col.row(align=True)
-                            for operator in operator_row:
-                                row.operator(operator.bl_idname, text=operator.bl_label, icon=operator.icon).filepath = operator.filepath
+        space_type = context.space_data.type
 
-        elif context.space_data.type == 'NODE_EDITOR':
-            category_name = "mp_shader"
+        # Draw operators for 3D Viewport
+        if space_type == 'VIEW_3D':
+            self.draw_panel(layout, context, ["mp_vcol_bake", "mp_Combo_op", "mp_cam_and_tex", "mp_misc"])
+
+        # Draw operators for Node Editor and Shader Editor
+        elif space_type in {'NODE_EDITOR', 'SHADER_EDITOR'}:
+            self.draw_panel(layout, context, ["mp_shader"])
+
+    def draw_panel(self, layout, context, category_names):
+        for category_name in category_names:
             category = categories[category_name]
             box = layout.box()
             row = box.row()
             row.alignment = 'EXPAND'
-            row.label(text=category_name)
-            col = box.column(align=True)
-            i = 0
-            for title, size in category.get("row_data", []):
-                if size == 0:
-                    # Add an empty column as a placeholder with increased gap
-                    col.separator(factor=2.0)
-                else:
-                    operator_row = category["operators"][i:i + size]
-                    i += size  # Move the index update here to avoid double printing
-                    if title:
-                        col.label(text=title)
-                    row = col.row(align=True)
-                    for operator in operator_row:
-                        row.operator(operator.bl_idname, text=operator.bl_label, icon=operator.icon).filepath = operator.filepath
-
-        elif context.space_data.type == 'NODE_EDITOR':
-            category_name = "mp_shader"
-            category = categories[category_name]
-            box = layout.box()
-            row = box.row()
-            row.alignment = 'EXPAND'
-            row.label(text=category_name)
-            col = box.column(align=True)
-            i = 0
-            for title, size in category.get("row_data", []):
-                if size == 0:
-                    # Add an empty column as a placeholder with increased gap
-                    col.separator(factor=2.0)
-                else:
-                    operator_row = category["operators"][i:i + size]
-                    if title:
-                        col.label(text=title)
-                    row = col.row(align=True)
-                    for operator in operator_row:
-                        row.operator(operator.bl_idname, text=operator.bl_label, icon=operator.icon).filepath = operator.filepath
-                    i += size
-
-            else:
-                for operator in category["operators"]:
-                    col.operator(operator.bl_idname, text=operator.bl_label, icon=operator.icon).filepath = operator.filepath
+            row.prop(context.scene, category["prop_name"], icon="TRIA_DOWN" if getattr(context.scene, category["prop_name"]) else "TRIA_RIGHT", emboss=False, text=category_name)
+            if getattr(context.scene, category["prop_name"]):
+                col = box.column(align=True)
+                i = 0
+                for title, size in category.get("row_data", []):
+                    if size == 0:
+                        # Add an empty column as a placeholder with increased gap
+                        col.separator(factor=1.5)
+                    else:
+                        operator_row = category["operators"][i:i + size]
+                        if title:
+                            col.label(text=title)
+                        row = col.row(align=True)
+                        for operator in operator_row:
+                            row.operator(operator.bl_idname, text=operator.bl_label, icon=operator.icon).filepath = operator.filepath
+                        i += size # Move the index update here to avoid double printing
 
 
 
