@@ -116,6 +116,7 @@ class InvisibleMeshHider:
                     if location and (v - location).length < self.limit:
                         self.visible_vertices_per_frame[frame].append(i)
             if not self.visible_vertices_per_frame[frame]:
+                # If no vertices are visible at this frame, break the loop
                 break
             del self.bvh
 
@@ -140,6 +141,16 @@ class InvisibleMeshHider:
         self.scene.frame_set(self.current_frame)
         bpy.context.window_manager.popup_menu(self.popup_draw, title="Invisible Mesh Hider", icon='INFO')
 
+    def add_or_update_vertex_group(self):
+        vertex_group_name = "invisible"
+        if vertex_group_name in self.active_obj.vertex_groups:
+            vertex_group = self.active_obj.vertex_groups[vertex_group_name]
+            vertex_group.remove(range(len(self.active_obj.data.vertices)))
+        else:
+            vertex_group = self.active_obj.vertex_groups.new(name=vertex_group_name)
+        for i in self.invisible_vertices:
+            vertex_group.add([i], 1.0, 'REPLACE')
+
     def popup_draw(self, self2, context):
         layout = self2.layout
         layout.label(text="Calculation completed.")
@@ -158,4 +169,5 @@ selected_objects = bpy.context.selected_objects
 
 mesh_hider = InvisibleMeshHider(active_object, selected_objects, cam, scene)
 mesh_hider.get_visible_vertices_per_frame()
+mesh_hider.add_or_update_vertex_group()
 mesh_hider.select_and_hide_invisible_meshes()
