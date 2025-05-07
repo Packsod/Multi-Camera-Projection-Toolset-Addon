@@ -88,6 +88,9 @@ class InvisibleMeshHider:
                     location, normal, index, distance = self.bvh.ray_cast(self.cam.location, (v - self.cam.location).normalized())
                     if location and (v - location).length < self.limit:
                         self.visible_vertices_per_frame[frame].append(i)
+            if not self.visible_vertices_per_frame[frame]:
+                # If no vertices are visible at this frame, break the loop
+                break
             del self.bvh
         self.invisible_vertices = set(range(active_obj_vertex_count)) - set(vertex for frame_vertices in self.visible_vertices_per_frame for vertex in frame_vertices)
         self.separate_merged_object()
@@ -109,7 +112,6 @@ class InvisibleMeshHider:
         bpy.ops.object.mode_set(mode='OBJECT')
         self.scene.frame_set(self.current_frame)
         bpy.context.window_manager.popup_menu(self.popup_draw, title="Invisible Mesh Hider", icon='INFO')
-
 
     def popup_draw(self, self2, context):
         layout = self2.layout
