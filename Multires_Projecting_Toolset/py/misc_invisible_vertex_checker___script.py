@@ -73,7 +73,34 @@ class InvisibleMeshHider:
         end_frame = self.scene.frame_end
         self.visible_vertices_per_frame = [[] for _ in range(end_frame + 1)]
         self.merge_selected_objects()
-        for frame in range(start_frame, end_frame + 1):
+        frame = start_frame
+        while frame <= end_frame:
+            self.scene.frame_set(frame)
+            bpy.ops.object.mode_set(mode='EDIT')
+            bpy.ops.mesh.select_mode(type='VERT')
+            bpy.ops.mesh.reveal()
+            self.deselect_edges_and_polygons()
+            bpy.ops.object.mode_set(mode='OBJECT')
+            self.bvh_tree_and_vertices_in_world()
+            active_obj_vertex_count = len(self.active_obj.data.vertices)
+            for i, v in enumerate(self.vertices[:active_obj_vertex_count]):
+                co2D = world_to_camera_view(self.scene, self.cam, v)
+                if 0.0 <= co2D.x <= 1.0 and 0.0 <= co2D.y <= 1.0:
+                    location, normal, index, distance = self.bvh.ray_cast(self.cam.location, (v - self.cam.location).normalized())
+                    if location and (v - location).length < self.limit:
+                        self.visible_vertices_per_frame[frame].append(i)
+            if self.visible_vertices_per_frame[frame]:
+                break
+            frame += 1
+        else:
+            # If no visible frame was found, stop calculation
+            self.separate_merged_object()
+            self.scene.frame_set(self.current_frame)
+            bpy.context.window_manager.popup_menu(self.popup_draw, title="Invisible Mesh Hider", icon='INFO')
+            return
+
+        # Continue calculating for subsequent frames
+        for frame in range(frame + 1, end_frame + 1):
             self.scene.frame_set(frame)
             bpy.ops.object.mode_set(mode='EDIT')
             bpy.ops.mesh.select_mode(type='VERT')
@@ -89,9 +116,9 @@ class InvisibleMeshHider:
                     if location and (v - location).length < self.limit:
                         self.visible_vertices_per_frame[frame].append(i)
             if not self.visible_vertices_per_frame[frame]:
-                # If no vertices are visible at this frame, break the loop
                 break
             del self.bvh
+
         self.invisible_vertices = set(range(active_obj_vertex_count)) - set(vertex for frame_vertices in self.visible_vertices_per_frame for vertex in frame_vertices)
         self.separate_merged_object()
         self.scene.frame_set(self.current_frame)
