@@ -2,22 +2,12 @@ import bpy
 
 class InvisibleMeshHider:
     def __init__(self, active_obj, selected_objs, cam, scene, limit=0.0001):
-        # Check if active object is a mesh object
-        if active_obj.type == 'MESH':
-            self.active_obj = active_obj
-        else:
-            self.active_obj = None
-            bpy.context.window_manager.popup_menu(self.popup_draw_not_mesh, title="Invisible Mesh Hider", icon='ERROR')
-            return
-        # Ignore non-mesh objects from selected objects
-        self.selected_objs = [obj for obj in selected_objs if obj.type == 'MESH']
+        self.active_obj = active_obj
+        self.selected_objs = selected_objs
         self.cam = cam
         self.scene = scene
         self.limit = limit
-        self.visible_vertices_per_frame = []
-        self.invisible_vertices = []
-        self.bvh = None
-        self.vertices = []
+        self.selected_mesh_objs = [obj for obj in selected_objs if obj.type == 'MESH']
         self.current_frame = self.scene.frame_current
         self.merged_obj = None
         self.selected_obj_copies = []
@@ -65,9 +55,6 @@ class InvisibleMeshHider:
             e.select = False
 
     def get_visible_vertices_per_frame(self):
-        # Check if active object is a mesh object
-        if self.active_obj is None:
-            return
         from bpy_extras.object_utils import world_to_camera_view
         start_frame = self.scene.frame_start
         end_frame = self.scene.frame_end
@@ -126,9 +113,6 @@ class InvisibleMeshHider:
         bpy.context.window_manager.popup_menu(self.popup_draw, title="Invisible Mesh Hider", icon='INFO')
 
     def select_and_hide_invisible_meshes(self):
-        # Check if active object is a mesh object
-        if self.active_obj is None:
-            return
         bpy.ops.object.mode_set(mode='EDIT')
         bpy.ops.mesh.select_all(action='DESELECT')
         bpy.ops.object.mode_set(mode='OBJECT')
@@ -158,16 +142,20 @@ class InvisibleMeshHider:
 
     def popup_draw_not_mesh(self, self2, context):
         layout = self2.layout
-        layout.label(text="Active object is not a mesh object. Please select a mesh object and try again.")
+        layout.label(text="No mesh objects selected. Please select at least one mesh object and try again.")
         return None
 
 # To use the class, create an instance of it for each selected mesh object and call its methods
 cam = bpy.context.scene.camera
 scene = bpy.context.scene
-active_object = bpy.context.active_object
 selected_objects = bpy.context.selected_objects
 
-mesh_hider = InvisibleMeshHider(active_object, selected_objects, cam, scene)
-mesh_hider.get_visible_vertices_per_frame()
-mesh_hider.add_or_update_vertex_group()
-mesh_hider.select_and_hide_invisible_meshes()
+if not any(obj.type == 'MESH' for obj in selected_objects):
+    bpy.context.window_manager.popup_menu(InvisibleMeshHider.popup_draw_not_mesh, title="Invisible Mesh Hider", icon='ERROR')
+else:
+    for obj in selected_objects:
+        if obj.type == 'MESH':
+            mesh_hider = InvisibleMeshHider(obj, selected_objects, cam, scene)
+            mesh_hider.get_visible_vertices_per_frame()
+            mesh_hider.add_or_update_vertex_group()
+            mesh_hider.select_and_hide_invisible_meshes()
