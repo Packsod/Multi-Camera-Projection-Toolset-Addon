@@ -17,6 +17,8 @@ class PATH_INFO_OT_Info(Operator):
                     title = line.split('CameraArchive_')[1].split('------------------------------------')[0].strip()
                     base_path = f"//multires_projecting/{title}/"
                     abs_path = bpy.path.abspath(base_path)
+                    # Replace all forward slashes with backslashes and remove the trailing backslash
+                    abs_path = abs_path.replace('/', '\\').rstrip('\\')
                     paths.append(abs_path)
             if paths:
                 bpy.context.window_manager.clipboard = '\n'.join(paths)
