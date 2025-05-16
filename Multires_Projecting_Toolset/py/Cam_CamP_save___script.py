@@ -35,6 +35,9 @@ class BackupCamPParametersOperator(Operator):
         else:
             title += "_base"
 
+        # Store the original title without the prefix and suffix
+        original_title = self.backup_suffix if self.backup_suffix else "base"
+
         # Check if the title with the same suffix already exists
         existing_title = f"------------------------------------{title}------------------------------------\n"
         existing_titles = [title[0] for title in self.get_titles(context)]
@@ -124,14 +127,14 @@ class BackupCamPParametersOperator(Operator):
                 bpy.context.scene.frame_set(current_frame)
                 backup_text.write("------------------\n")
 
-        # Update the base_path
-        self.update_base_path(title)
+        # Update the base_path with the original title
+        self.update_base_path(original_title)
 
         return {'FINISHED'}
 
-    def update_base_path(self, title):
+    def update_base_path(self, original_title):
         base_path = bpy.data.scenes[bpy.context.scene.name].node_tree.nodes["Output_path_MP"].base_path
-        new_base_path = f"//multires_projecting/{title}/{{camera}}"
+        new_base_path = f"//multires_projecting/{original_title}/{{camera}}"
         bpy.data.scenes[bpy.context.scene.name].node_tree.nodes["Output_path_MP"].base_path = new_base_path
 
     def invoke(self, context, event):
