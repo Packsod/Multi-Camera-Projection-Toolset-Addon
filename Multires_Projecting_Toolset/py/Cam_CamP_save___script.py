@@ -123,7 +123,16 @@ class BackupCamPParametersOperator(Operator):
                 # Restore the current frame
                 bpy.context.scene.frame_set(current_frame)
                 backup_text.write("------------------\n")
+
+        # Update the base_path
+        self.update_base_path(title)
+
         return {'FINISHED'}
+
+    def update_base_path(self, title):
+        base_path = bpy.data.scenes[bpy.context.scene.name].node_tree.nodes["Output_path_MP"].base_path
+        new_base_path = f"//multires_projecting/{title}/{{camera}}"
+        bpy.data.scenes[bpy.context.scene.name].node_tree.nodes["Output_path_MP"].base_path = new_base_path
 
     def invoke(self, context, event):
         return context.window_manager.invoke_props_dialog(self)
