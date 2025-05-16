@@ -1,5 +1,31 @@
 import bpy
-from bpy.types import Operator
+from bpy.types import Operator, PropertyGroup, UIList
+import os
+
+class PATH_INFO_OT_Info(Operator):
+    bl_idname = "object.path_info"
+    bl_label = "Path Info"
+    bl_description = "Copy all title folder paths to clipboard"
+
+    def execute(self, context):
+        backup_text = bpy.data.texts.get('CamP_backups_list.md')
+        if backup_text is not None:
+            lines = backup_text.as_string().split('\n')
+            paths = []
+            for line in lines:
+                if line.startswith('------------------------------------') and 'CameraArchive_' in line and line.endswith('------------------------------------'):
+                    title = line.split('CameraArchive_')[1].split('------------------------------------')[0].strip()
+                    base_path = f"//multires_projecting/{title}/"
+                    abs_path = bpy.path.abspath(base_path)
+                    paths.append(abs_path)
+            if paths:
+                bpy.context.window_manager.clipboard = '\n'.join(paths)
+                self.report({'INFO'}, "Paths copied to clipboard.")
+            else:
+                self.report({'WARNING'}, "No paths found.")
+        else:
+            self.report({'WARNING'}, "No 'CamP_backups_list.md' text block found.")
+        return {'FINISHED'}
 
 class RESTORE_OT_CamPParameters(Operator):
     bl_idname = "object.restore_camp_parameters"
@@ -120,6 +146,7 @@ class RESTORE_OT_CamPParameters(Operator):
         remove_op = row.operator("object.remove_camp_backup", text="", icon="TRASH")
         if self.title_index < len(self.titles):
             remove_op.title = self.titles[self.title_index].name
+        info_op = row.operator("object.path_info", text="", icon="INFO")
         self.update_titles(context)
 
     def update_base_path(self):
@@ -174,6 +201,7 @@ class REMOVE_OT_CamPBackup(Operator):
         self.get_titles(context)
         return self.execute(context)
 
+bpy.utils.register_class(PATH_INFO_OT_Info)
 bpy.utils.register_class(RESTORE_OT_CamPParameters)
 bpy.utils.register_class(REMOVE_OT_CamPBackup)
 bpy.ops.object.restore_camp_parameters('INVOKE_DEFAULT')
