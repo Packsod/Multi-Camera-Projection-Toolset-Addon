@@ -2,17 +2,19 @@ import bpy
 from bpy.types import Operator
 
 class RESTORE_OT_CamPParameters(Operator):
-    from bpy.types import PropertyGroup
     bl_idname = "object.restore_camp_parameters"
     bl_label = "Restore CamP Parameters"
     title_index: bpy.props.IntProperty(name="Title Index", default=0)
     title: bpy.props.StringProperty(name="Backup Title")
-    titles: bpy.props.CollectionProperty(type=PropertyGroup)
+    titles: bpy.props.CollectionProperty(type=bpy.types.PropertyGroup)
 
     def execute(self, context):
         if self.title_index < len(self.titles):
             self.title = self.titles[self.title_index].name  # Set the title property based on the selected index
-            return self.restore_camera_parameters()
+            result = self.restore_camera_parameters()
+            if result == {'FINISHED'}:
+                self.update_base_path()
+            return result
         else:
             self.report({'WARNING'}, "Invalid backup index.")
             return {'CANCELLED'}
@@ -120,12 +122,17 @@ class RESTORE_OT_CamPParameters(Operator):
             remove_op.title = self.titles[self.title_index].name
         self.update_titles(context)
 
+    def update_base_path(self):
+        base_path = bpy.data.scenes[bpy.context.scene.name].node_tree.nodes["Output_path_MP"].base_path
+        new_base_path = f"//multires_projecting/{self.title}/{{camera}}"
+        base_path = new_base_path
+        bpy.data.scenes[bpy.context.scene.name].node_tree.nodes["Output_path_MP"].base_path = new_base_path
+
 class REMOVE_OT_CamPBackup(Operator):
-    from bpy.types import PropertyGroup
     bl_idname = "object.remove_camp_backup"
     bl_label = "Remove CamP Backup"
     title: bpy.props.StringProperty(name="Backup Title")
-    titles: bpy.props.CollectionProperty(type=PropertyGroup)
+    titles: bpy.props.CollectionProperty(type=bpy.types.PropertyGroup)
 
     def execute(self, context):
         backup_text = bpy.data.texts.get('CamP_backups_list.md')
