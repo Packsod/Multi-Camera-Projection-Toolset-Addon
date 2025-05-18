@@ -14,14 +14,16 @@ class RenderSelectedFrameOperator(bpy.types.Operator):
     def execute(self, context):
         import os
         import re
-        # Save the current frame and image settings
+        # Save the current frame, image settings, and use_nodes setting
         current_frame = bpy.context.scene.frame_current
         current_file_format = bpy.context.scene.render.image_settings.file_format
         current_use_overwrite = bpy.context.scene.render.use_overwrite
+        current_use_nodes = bpy.context.scene.use_nodes
 
         # Set the image settings to PNG format and enable overwrite
         bpy.context.scene.render.image_settings.file_format = 'PNG'
         bpy.context.scene.render.use_overwrite = True
+        bpy.context.scene.use_nodes = True
 
         # Calculate the selected frame
         selected_frame = -self.selected_frame
@@ -62,6 +64,7 @@ class RenderSelectedFrameOperator(bpy.types.Operator):
         bpy.context.scene.frame_set(current_frame)
         bpy.context.scene.render.image_settings.file_format = current_file_format
         bpy.context.scene.render.use_overwrite = current_use_overwrite
+        bpy.context.scene.use_nodes = current_use_nodes
         # Show a pop-up message
         selected_frame_formatted = "%02d" % abs(selected_frame)
         camera_name = bpy.context.scene.camera.name
