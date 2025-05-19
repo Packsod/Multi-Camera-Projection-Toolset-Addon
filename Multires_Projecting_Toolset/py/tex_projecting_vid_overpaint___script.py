@@ -30,8 +30,6 @@ class OverpaintCameraBatchProjection(bpy.types.Operator):
                 image_name = os.path.basename(image_path)
                 bpy.data.images.load(image_path, check_existing=True)
                 bpy.context.scene.camera = bpy.context.scene.camera
-                bpy.context.scene.render.resolution_x = bpy.data.images[image_name].size[0]
-                bpy.context.scene.render.resolution_y = bpy.data.images[image_name].size[1]
                 bpy.ops.paint.texture_paint_toggle()
                 bpy.context.scene.tool_settings.image_paint.seam_bleed = 3
                 bpy.context.scene.tool_settings.image_paint.use_occlude = True
