@@ -112,8 +112,6 @@ class OverpaintCameraProjection(bpy.types.Operator):
         return {'FINISHED'}
 
     def execute(self, context):
-        original_res_x = bpy.context.scene.render.resolution_x
-        original_res_y = bpy.context.scene.render.resolution_y
         active_camera = bpy.context.scene.camera
         selected_camera_indexes = [i + 1 for i in range(24) if self.camera_indexes[i]]
         if self.specified_camera:
@@ -125,8 +123,6 @@ class OverpaintCameraProjection(bpy.types.Operator):
             camera_indexes = self.available_camera_indexes
         result = self.execute_projection(camera_indexes)
         bpy.context.scene.camera = active_camera
-        bpy.context.scene.render.resolution_x = original_res_x
-        bpy.context.scene.render.resolution_y = original_res_y
         return result
 
     def draw(self, context):
