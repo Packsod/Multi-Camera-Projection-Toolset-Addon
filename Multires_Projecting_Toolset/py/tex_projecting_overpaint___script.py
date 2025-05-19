@@ -84,7 +84,7 @@ class OverpaintCameraProjection(bpy.types.Operator):
                         bpy.context.scene.render.resolution_x = bpy.data.images[psd_op_in_data].size[0]
                         bpy.context.scene.render.resolution_y = bpy.data.images[psd_op_in_data].size[1]
                         bpy.ops.paint.texture_paint_toggle()
-                        bpy.context.scene.tool_settings.image_paint.seam_bleed = 0
+                        bpy.context.scene.tool_settings.image_paint.seam_bleed = 3
                         bpy.context.scene.tool_settings.image_paint.use_occlude = True
                         bpy.context.scene.tool_settings.image_paint.use_backface_culling = True
                         bpy.ops.paint.project_image(image=psd_op_in_data)
