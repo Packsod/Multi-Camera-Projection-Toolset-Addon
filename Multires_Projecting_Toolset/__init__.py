@@ -15,10 +15,10 @@ bl_info = {
 
 categories = {
     "mp_vcol_bake": {"prop_name": "mp_vcol_bake_expanded", "operators": []},
-    "mp_shader": {"prop_name": "mp_shader_expanded", "operators": []},
+    "mp_Combo_op": {"prop_name": "mp_Combo_op_expanded", "operators": []},
     "mp_cam_and_tex": {"prop_name": "mp_cam_and_tex_expanded", "operators": []},
     "mp_misc": {"prop_name": "mp_misc_expanded", "operators": []},
-    "mp_Combo_op": {"prop_name": "mp_Combo_op_expanded", "operators": []},
+    "mp_shader": {"prop_name": "mp_shader_expanded", "operators": []},
     "mp_nodegroups": {"prop_name": "mp_nodegroups_expanded", "operators": []}, 
     # New category
 }
@@ -63,14 +63,14 @@ def create_operator_2(def_name, label, icon):
 def create_operator_3(def_name, label, icon):
     return create_operator_big(def_name, label, icon, "Cam_op___script.py")
 
-def create_operator_4(def_name, label):
-    return create_operator_big(def_name, label, 'NONE', "shader_nodegroups___script.py")
+def create_operator_4(def_name, label, icon):
+    return create_operator_big(def_name, label, icon, "misc_op___script.py")
 
 def create_operator_5(def_name, label, icon):
     return create_operator_big(def_name, label, icon, "shader_op___script.py")
 
-def create_operator_6(def_name, label, icon):
-    return create_operator_big(def_name, label, icon, "misc_op___script.py")
+def create_operator_6(def_name, label):
+    return create_operator_big(def_name, label, 'NONE', "shader_nodegroups___script.py")
 
 
 
@@ -267,9 +267,13 @@ categories["mp_misc"]["row_data"] = [
 
 
 categories["mp_cam_and_tex"]["operators"] = [
-    create_operator_1("tex_projecting_overpaint", "project to obj", "RENDER_RESULT"),
+    create_operator_1("tex_projecting_overpaint", "project to obj(img)", "RENDER_RESULT"),
     create_operator_1("tex_quick_reload_overpaint", "", "RECOVER_LAST"),
     create_operator_1("tex_quick_save_overpaint", "", "FILE_TICK"),
+    
+    create_operator_1("tex_projecting_vid_overpaint", "project to obj(vid)", "RENDER_RESULT"),
+    create_operator_3("Placeholder.nothing", "", "BLANK1"),
+    create_operator_3("Placeholder.nothing", "", "BLANK1"),
   
     create_operator_3("Cam_Visibility.hide_current_object", "1by1", "HIDE_ON"),
     create_operator_3("Cam_Visibility.hide_all_objects", "all", "HIDE_ON"),
@@ -292,6 +296,7 @@ categories["mp_cam_and_tex"]["operators"] = [
 
 categories["mp_cam_and_tex"]["row_data"] = [
     ("overpaint", 3),
+    ("", 3),
     ("obj visibility -frames", 3),
     ("camera fit", 2),
     ("", 2),
@@ -363,34 +368,34 @@ categories["mp_Combo_op"]["row_data"] = [
 
 categories["mp_nodegroups"]["operators"] = [   
     create_operator_5("shader_add_gradient_mask", "gradient mask add", "MOD_MASK"), 
-    create_operator_4("ShaderAdder.npr_Key_Light", ".npr_Key Light"),
-    create_operator_4("ShaderAdder.npr_Specular", ".npr_Specular"),
-    create_operator_4("ShaderAdder.npr_Virtual_Point_Light", ".npr_Virtual Point Light"),
-    create_operator_4("ShaderAdder.npr_Virtual_Spot_Light", ".npr_Virtual Spot Light"),
-    create_operator_4("ShaderAdder.npr_Virtual_Sun_Light", ".npr_Virtual Sun Light"),
+    create_operator_6("ShaderAdder.npr_Key_Light", ".npr_Key Light"),
+    create_operator_6("ShaderAdder.npr_Specular", ".npr_Specular"),
+    create_operator_6("ShaderAdder.npr_Virtual_Point_Light", ".npr_Virtual Point Light"),
+    create_operator_6("ShaderAdder.npr_Virtual_Spot_Light", ".npr_Virtual Spot Light"),
+    create_operator_6("ShaderAdder.npr_Virtual_Sun_Light", ".npr_Virtual Sun Light"),
 #4
-    create_operator_4("ShaderAdder.npr_layer_mix_shader", ".(09) npr_layer_mix_shader"),
-    create_operator_4("ShaderAdder.npr_Color", ".npr_Color"),
-    create_operator_4("ShaderAdder.npr_Layer_Adjustment", ".npr_Layer Adjustment"),
-    create_operator_4("ShaderAdder.npr_Global_Color", ".npr_Global Color"),
+    create_operator_6("ShaderAdder.npr_layer_mix_shader", ".(09) npr_layer_mix_shader"),
+    create_operator_6("ShaderAdder.npr_Color", ".npr_Color"),
+    create_operator_6("ShaderAdder.npr_Layer_Adjustment", ".npr_Layer Adjustment"),
+    create_operator_6("ShaderAdder.npr_Global_Color", ".npr_Global Color"),
 #8        
-    create_operator_4("ShaderAdder.npr_Linear_Gradient", ".npr_Linear Gradient"),
-    create_operator_4("ShaderAdder.npr_Spherical_Gradient", ".npr_Spherical Gradient"),
-    create_operator_4("ShaderAdder.npr_Local_Gradient", ".npr_Local Gradient"),
-    create_operator_4("ShaderAdder.npr_Z_Depth", ".npr_Z Depth"),
+    create_operator_6("ShaderAdder.npr_Linear_Gradient", ".npr_Linear Gradient"),
+    create_operator_6("ShaderAdder.npr_Spherical_Gradient", ".npr_Spherical Gradient"),
+    create_operator_6("ShaderAdder.npr_Local_Gradient", ".npr_Local Gradient"),
+    create_operator_6("ShaderAdder.npr_Z_Depth", ".npr_Z Depth"),
 #12
-    create_operator_4("ShaderAdder.npr_2D_Outline", ".npr_2D Outline"),
-    create_operator_4("ShaderAdder.npr_2D_Rim_Light", ".npr_2D Rim Light",),
-    create_operator_4("ShaderAdder.npr_2D_Specular", ".npr_2D Specular"),
-    create_operator_4("ShaderAdder.npr_Matcap", ".npr_Matcap"),
+    create_operator_6("ShaderAdder.npr_2D_Outline", ".npr_2D Outline"),
+    create_operator_6("ShaderAdder.npr_2D_Rim_Light", ".npr_2D Rim Light",),
+    create_operator_6("ShaderAdder.npr_2D_Specular", ".npr_2D Specular"),
+    create_operator_6("ShaderAdder.npr_Matcap", ".npr_Matcap"),
 #16
-    create_operator_4("ShaderAdder.npr_Ambient_Occlusion_Baked", ".npr_Ambient Occlusion (Baked)"),
-    create_operator_4("ShaderAdder.npr_Ambient_Occlusion_SS", ".npr_Ambient Occlusion (SS)"),
+    create_operator_6("ShaderAdder.npr_Ambient_Occlusion_Baked", ".npr_Ambient Occlusion (Baked)"),
+    create_operator_6("ShaderAdder.npr_Ambient_Occlusion_SS", ".npr_Ambient Occlusion (SS)"),
 #18
-    create_operator_4("ShaderAdder_add_Halftone_Style", ".Halftone Style"),
-    create_operator_4("ShaderAdder_add_Hatch_Style", ".Hatch Style"),
-    create_operator_4("ShaderAdder_add_Painterly_Style", ".Painterly Style"),
-    create_operator_4("ShaderAdder_add_Anisotropic_Style", ".Anisotropic Style"),
+    create_operator_6("ShaderAdder_add_Halftone_Style", ".Halftone Style"),
+    create_operator_6("ShaderAdder_add_Hatch_Style", ".Hatch Style"),
+    create_operator_6("ShaderAdder_add_Painterly_Style", ".Painterly Style"),
+    create_operator_6("ShaderAdder_add_Anisotropic_Style", ".Anisotropic Style"),
 ]
 
 categories["mp_nodegroups"]["layout.separator"] =[4, 8, 12, 16, 18]
