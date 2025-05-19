@@ -81,8 +81,6 @@ class OverpaintCameraProjection(bpy.types.Operator):
                         bpy.data.images.load(self.psd_op_paths[i-1], check_existing=True)
                         psd_op_in_data = self.psd_op_paths[i-1].split('/')[-1]
                         bpy.context.scene.camera = bpy.data.objects[self.CamP_objects[i-1]]
-                        bpy.context.scene.render.resolution_x = bpy.data.images[psd_op_in_data].size[0]
-                        bpy.context.scene.render.resolution_y = bpy.data.images[psd_op_in_data].size[1]
                         bpy.ops.paint.texture_paint_toggle()
                         bpy.context.scene.tool_settings.image_paint.seam_bleed = 3
                         bpy.context.scene.tool_settings.image_paint.use_occlude = True
@@ -98,8 +96,6 @@ class OverpaintCameraProjection(bpy.types.Operator):
                         bpy.data.images.load(self.psd_op_paths[i-1], check_existing=True)
                         psd_op_in_data = self.psd_op_paths[i-1].split('/')[-1]
                         bpy.context.scene.camera = bpy.data.objects[self.CamP_objects[i-1]]
-                        bpy.context.scene.render.resolution_x = bpy.data.images[psd_op_in_data].size[0]
-                        bpy.context.scene.render.resolution_y = bpy.data.images[psd_op_in_data].size[1]
                         bpy.ops.paint.texture_paint_toggle()
                         bpy.context.scene.tool_settings.image_paint.seam_bleed = 0
                         bpy.context.scene.tool_settings.image_paint.use_occlude = True
