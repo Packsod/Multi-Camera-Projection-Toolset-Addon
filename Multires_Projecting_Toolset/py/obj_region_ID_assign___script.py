@@ -131,17 +131,35 @@ class SelectObjsByAssignedID(bpy.types.Operator, ColorConversion):
 class RegionIDMaker(bpy.types.Operator, ColorConversion):
     bl_idname = "object.show_dialog"
     bl_label = "Assgin a region color ID (1-256) for selected objects"
-    index: bpy.props.IntProperty(name="region color ID", min=1, max=256, default=1, update=lambda self, context: self.update_index(context))
+    index: bpy.props.IntProperty(name="region color ID", min=-1, max=256, default=1, update=lambda self, context: self.update_index(context))
     color_id_result: bpy.props.StringProperty(name="region color ID Result", default="")
 
     def execute(self, context):
+        import random
         selected_objects = bpy.context.selected_objects
-        if selected_objects and self.index <= 256:
-            rgb_color = self.generate_colors(self.index)
-            hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb_color[0]*256), int(rgb_color[1]*256), int(rgb_color[2]*256))
-            rgba_color = self.hex_to_rgba(hex_color)
-            for obj in selected_objects:
-                obj.color = list(rgba_color)
+        if selected_objects:
+            if self.index == -1:
+                used_indices = set()
+                for obj in selected_objects:
+                    while True:
+                        index = random.randint(1, 256)
+                        if index not in used_indices:
+                            used_indices.add(index)
+                            break
+                    rgb_color = self.generate_colors(index)
+                    hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb_color[0]*256), int(rgb_color[1]*256), int(rgb_color[2]*256))
+                    rgba_color = self.hex_to_rgba(hex_color)
+                    obj.color = list(rgba_color)
+            elif self.index == 0:
+                rgba_color = (1.0, 1.0, 1.0, 1.0)
+                for obj in selected_objects:
+                    obj.color = list(rgba_color)
+            elif self.index <= 256:
+                rgb_color = self.generate_colors(self.index)
+                hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb_color[0]*256), int(rgb_color[1]*256), int(rgb_color[2]*256))
+                rgba_color = self.hex_to_rgba(hex_color)
+                for obj in selected_objects:
+                    obj.color = list(rgba_color)
         context.scene['region_id_maker_index'] = self.index
         return {'FINISHED'}
 
