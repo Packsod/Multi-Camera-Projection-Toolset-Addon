@@ -145,14 +145,14 @@ class RegionIDMaker(bpy.types.Operator, ColorConversion):
         if selected_objects:
             if self.index == -1:
                 # Pre-generate a list of unique indices
-                indices = list(range(1, 257))
+                indices = list(range(1, 256))
                 random.shuffle(indices)
                 for obj in selected_objects:
                     try:
                         index = indices.pop(0)
                     except IndexError:
                         # If the list is exhausted, start from the beginning
-                        indices = list(range(1, 257))
+                        indices = list(range(1, 256))
                         random.shuffle(indices)
                         index = indices.pop(0)
                     rgb_color = self.generate_colors(index)
