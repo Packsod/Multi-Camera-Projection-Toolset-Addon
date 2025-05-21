@@ -1,6 +1,7 @@
 import bpy
 from bpy.types import Operator
 
+
 class ColorConversion:
     def srgb_to_linearrgb(self, c):
         if c < 0:
@@ -134,18 +135,26 @@ class RegionIDMaker(bpy.types.Operator, ColorConversion):
     index: bpy.props.IntProperty(name="region color ID", min=-1, max=256, default=1, update=lambda self, context: self.update_index(context))
     color_id_result: bpy.props.StringProperty(name="region color ID Result", default="")
 
+    @classmethod
+    def poll(cls, context):
+        return context.selected_objects
+
     def execute(self, context):
         import random
         selected_objects = bpy.context.selected_objects
         if selected_objects:
             if self.index == -1:
-                used_indices = set()
+                # Pre-generate a list of unique indices
+                indices = list(range(1, 257))
+                random.shuffle(indices)
                 for obj in selected_objects:
-                    while True:
-                        index = random.randint(1, 256)
-                        if index not in used_indices:
-                            used_indices.add(index)
-                            break
+                    try:
+                        index = indices.pop(0)
+                    except IndexError:
+                        # If the list is exhausted, start from the beginning
+                        indices = list(range(1, 257))
+                        random.shuffle(indices)
+                        index = indices.pop(0)
                     rgb_color = self.generate_colors(index)
                     hex_color = '#{:02x}{:02x}{:02x}'.format(int(rgb_color[0]*256), int(rgb_color[1]*256), int(rgb_color[2]*256))
                     rgba_color = self.hex_to_rgba(hex_color)
