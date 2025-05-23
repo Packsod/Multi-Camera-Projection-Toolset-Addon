@@ -131,11 +131,10 @@ class OverpaintCameraProjection(bpy.types.Operator):
         if not self.specified_camera:
             layout.label(text="Camera Indexes: All available")
         else:
-            row = layout.row()
-            for i in self.available_camera_indexes:
-                row.prop(self, "camera_indexes", index=i-1, text=str(i))
-                if i % 6 == 0:
-                    row = layout.row()
+            for i in range(0, len(self.available_camera_indexes), 6):
+                row = layout.row()
+                for j in range(i, min(i + 6, len(self.available_camera_indexes))):
+                    row.prop(self, "camera_indexes", index=j, text=str(j + 1))
 
     def invoke(self, context, event):
         active_obj = bpy.context.active_object
