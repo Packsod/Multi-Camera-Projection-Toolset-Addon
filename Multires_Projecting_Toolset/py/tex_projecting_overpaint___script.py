@@ -8,6 +8,7 @@ class OverpaintCameraProjection(bpy.types.Operator):
     bl_options = {'REGISTER', 'UNDO'}
     camera_indexes: bpy.props.BoolVectorProperty(name="Camera Indexes", size=24)
     specified_camera: bpy.props.BoolProperty(name="Specify Camera Projection", default=False)
+    merge_mesh: bpy.props.BoolProperty(name="Merge Mesh", default=False)
 
     def __init__(self):
         self.CamP_objects = [f"CamP_sub{str(i).zfill(2)}" for i in range(1, 25)]
@@ -45,35 +46,39 @@ class OverpaintCameraProjection(bpy.types.Operator):
         bpy.context.collection.objects.link(new_obj)
         return new_obj
 
-    def execute_projection(self, camera_indexes=None):
+    def execute_projection(self, camera_indexes=None, merged_obj=None):
         bpy.ops.object.mode_set(mode='OBJECT')
-        active_obj = bpy.context.active_object
-        selected_objs = [obj for obj in bpy.context.selected_objects if obj.type == 'MESH' and obj != active_obj]
-        active_obj_copy = self.duplicate_object(active_obj)
-        selected_objs_copy = [self.duplicate_object(obj) for obj in selected_objs]
+        if merged_obj is None:
+            active_obj = bpy.context.active_object
+            selected_objs = [obj for obj in bpy.context.selected_objects if obj.type == 'MESH' and obj != active_obj]
+            active_obj_copy = self.duplicate_object(active_obj)
+            selected_objs_copy = [self.duplicate_object(obj) for obj in selected_objs]
 
-        for modifier in active_obj_copy.modifiers:
-            bpy.context.view_layer.objects.active = active_obj_copy
-            bpy.ops.object.modifier_apply(modifier=modifier.name)
-
-        for obj in selected_objs_copy:
-            if obj.material_slots:
-                for i in range(len(obj.material_slots)):
-                    obj.material_slots[i].material = None
-            for modifier in obj.modifiers:
-                bpy.context.view_layer.objects.active = obj
+            for modifier in active_obj_copy.modifiers:
+                bpy.context.view_layer.objects.active = active_obj_copy
                 bpy.ops.object.modifier_apply(modifier=modifier.name)
-            while obj.data.uv_layers:
-                obj.data.uv_layers.remove(obj.data.uv_layers[0])
-            bpy.ops.object.select_all(action='DESELECT')
-            obj.select_set(True)
-            active_obj_copy.select_set(True)
-            bpy.context.view_layer.objects.active = active_obj_copy
-            bpy.ops.object.join()
-        for i in reversed(range(len(active_obj_copy.material_slots))):
-            if active_obj_copy.material_slots[i].material is None:
-                active_obj_copy.active_material_index = i
-                bpy.ops.object.material_slot_remove()
+
+            for obj in selected_objs_copy:
+                if obj.material_slots:
+                    for i in range(len(obj.material_slots)):
+                        obj.material_slots[i].material = None
+                for modifier in obj.modifiers:
+                    bpy.context.view_layer.objects.active = obj
+                    bpy.ops.object.modifier_apply(modifier=modifier.name)
+                while obj.data.uv_layers:
+                    obj.data.uv_layers.remove(obj.data.uv_layers[0])
+                bpy.ops.object.select_all(action='DESELECT')
+                obj.select_set(True)
+                active_obj_copy.select_set(True)
+                bpy.context.view_layer.objects.active = active_obj_copy
+                bpy.ops.object.join()
+            for i in reversed(range(len(active_obj_copy.material_slots))):
+                if active_obj_copy.material_slots[i].material is None:
+                    active_obj_copy.active_material_index = i
+                    bpy.ops.object.material_slot_remove()
+        else:
+            active_obj_copy = merged_obj
+
         if camera_indexes is None:
             for i in self.available_camera_indexes:
                 if self.CamP_objects[i-1] in bpy.data.objects:
@@ -105,10 +110,8 @@ class OverpaintCameraProjection(bpy.types.Operator):
                     except Exception as e:
                         self.popup_message(f"Camera {self.CamP_objects[i-1]} does not exist.")
         bpy.ops.object.mode_set(mode='OBJECT')
-        bpy.data.objects.remove(active_obj_copy, do_unlink=True)
-        for obj in selected_objs + [active_obj]:
-            obj.select_set(True)
-        bpy.context.view_layer.objects.active = active_obj
+        if merged_obj is None:
+            bpy.data.objects.remove(active_obj_copy, do_unlink=True)
         return {'FINISHED'}
 
     def execute(self, context):
@@ -121,20 +124,49 @@ class OverpaintCameraProjection(bpy.types.Operator):
             camera_indexes = selected_camera_indexes
         else:
             camera_indexes = self.available_camera_indexes
-        result = self.execute_projection(camera_indexes)
+
+        active_obj = bpy.context.active_object
+        selected_objs = [obj for obj in bpy.context.selected_objects if obj.type == 'MESH' and obj != active_obj]
+
+        if self.merge_mesh and selected_objs:
+            # Create a merged copy of active and selected objects
+            bpy.ops.object.select_all(action='DESELECT')
+            for obj in selected_objs:
+                obj.select_set(True)
+            active_obj.select_set(True)
+            bpy.context.view_layer.objects.active = active_obj
+            bpy.ops.object.duplicate_move(OBJECT_OT_duplicate={"linked":False, "mode":'TRANSLATION'})
+            bpy.ops.object.join()
+            merged_obj = bpy.context.active_object
+        else:
+            merged_obj = None
+
+        result = self.execute_projection(camera_indexes, merged_obj)
         bpy.context.scene.camera = active_camera
+        if merged_obj:
+            bpy.data.objects.remove(merged_obj, do_unlink=True)
+        # Restore original selection and active object
+        bpy.ops.object.select_all(action='DESELECT')
+        for obj in selected_objs:
+            obj.select_set(True)
+        active_obj.select_set(True)
+        bpy.context.view_layer.objects.active = active_obj
         return result
 
     def draw(self, context):
         layout = self.layout
-        layout.prop(self, "specified_camera")
+        row = layout.row()
+        row.prop(self, "specified_camera")
+        row.prop(self, "merge_mesh")
+
         if not self.specified_camera:
             layout.label(text="Camera Indexes: All available")
         else:
             for i in range(0, len(self.available_camera_indexes), 6):
                 row = layout.row()
                 for j in range(i, min(i + 6, len(self.available_camera_indexes))):
-                    row.prop(self, "camera_indexes", index=j, text=str(j + 1))
+                    camera_index = self.available_camera_indexes[j]
+                    row.prop(self, "camera_indexes", index=j, text=str(camera_index))
 
     def invoke(self, context, event):
         active_obj = bpy.context.active_object
