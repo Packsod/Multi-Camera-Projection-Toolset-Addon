@@ -11,6 +11,7 @@ class OverpaintCameraBatchProjection(bpy.types.Operator):
     end_frame: bpy.props.IntProperty(name="End Frame", default=bpy.context.scene.frame_end, min=0)
     skip_first_images: bpy.props.IntProperty(name="Skip First Images", default=7, min=0)
     project_every_nth: bpy.props.IntProperty(name="Project Every nth", default=2, min=1)
+    merge_mesh: bpy.props.BoolProperty(name="Merge Mesh", default=False)
 
     def execute(self, context):
         original_frame = bpy.context.scene.frame_current
@@ -23,6 +24,22 @@ class OverpaintCameraBatchProjection(bpy.types.Operator):
         # Skip the first images
         image_files = image_files[self.skip_first_images:]
 
+        # If merging mesh, duplicate and join active and selected objects
+        active_obj = bpy.context.active_object
+        selected_objs = [obj for obj in bpy.context.selected_objects if obj.type == 'MESH' and obj != active_obj]
+        merged_obj = None
+
+        if self.merge_mesh and selected_objs:
+            # Create a merged copy of active and selected objects
+            bpy.ops.object.select_all(action='DESELECT')
+            for obj in selected_objs:
+                obj.select_set(True)
+            active_obj.select_set(True)
+            bpy.context.view_layer.objects.active = active_obj
+            bpy.ops.object.duplicate_move(OBJECT_OT_duplicate={"linked":False, "mode":'TRANSLATION'})
+            bpy.ops.object.join()
+            merged_obj = bpy.context.active_object
+
         for frame in range(self.start_frame, self.end_frame + 1, self.project_every_nth):
             if frame >= bpy.context.scene.frame_start and frame <= bpy.context.scene.frame_end:
                 bpy.context.scene.frame_set(frame)
@@ -34,15 +51,20 @@ class OverpaintCameraBatchProjection(bpy.types.Operator):
                 bpy.context.scene.tool_settings.image_paint.seam_bleed = 3
                 bpy.context.scene.tool_settings.image_paint.use_occlude = True
                 bpy.context.scene.tool_settings.image_paint.use_backface_culling = True
+                if merged_obj:
+                    bpy.context.view_layer.objects.active = merged_obj
                 bpy.ops.paint.project_image(image=image_name)
                 bpy.ops.paint.texture_paint_toggle()  # Exit texture paint mode
 
         bpy.context.scene.frame_set(original_frame)
+        if merged_obj:
+            bpy.data.objects.remove(merged_obj, do_unlink=True)
         return {'FINISHED'}
 
     def draw(self, context):
         layout = self.layout
         layout.prop(self, "image_directory")
+        layout.prop(self, "merge_mesh")
         layout.prop(self, "start_frame")
         layout.prop(self, "end_frame")
         layout.prop(self, "skip_first_images")
