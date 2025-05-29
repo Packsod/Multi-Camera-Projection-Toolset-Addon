@@ -46,6 +46,12 @@ class OverpaintCameraProjection(bpy.types.Operator):
         bpy.context.collection.objects.link(new_obj)
         return new_obj
 
+    def ensure_all_faces_selected(self, obj):
+        bpy.context.view_layer.objects.active = obj
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+
     def execute_projection(self, camera_indexes=None, merged_obj=None):
         bpy.ops.object.mode_set(mode='OBJECT')
         if merged_obj is None:
@@ -115,11 +121,15 @@ class OverpaintCameraProjection(bpy.types.Operator):
         return {'FINISHED'}
 
     def execute(self, context):
+        original_global_undo = bpy.context.preferences.edit.use_global_undo
+        bpy.context.preferences.edit.use_global_undo = False
+
         active_camera = bpy.context.scene.camera
         selected_camera_indexes = [i + 1 for i in range(24) if self.camera_indexes[i]]
         if self.specified_camera:
             if not selected_camera_indexes:
                 self.popup_message("No camera selected. Please select a camera to proceed.")
+                bpy.context.preferences.edit.use_global_undo = original_global_undo
                 return {'CANCELLED'}
             camera_indexes = selected_camera_indexes
         else:
@@ -138,6 +148,7 @@ class OverpaintCameraProjection(bpy.types.Operator):
             bpy.ops.object.duplicate_move(OBJECT_OT_duplicate={"linked":False, "mode":'TRANSLATION'})
             bpy.ops.object.join()
             merged_obj = bpy.context.active_object
+            self.ensure_all_faces_selected(merged_obj)
         else:
             merged_obj = None
 
@@ -151,6 +162,8 @@ class OverpaintCameraProjection(bpy.types.Operator):
             obj.select_set(True)
         active_obj.select_set(True)
         bpy.context.view_layer.objects.active = active_obj
+
+        bpy.context.preferences.edit.use_global_undo = original_global_undo
         return result
 
     def draw(self, context):
@@ -162,22 +175,23 @@ class OverpaintCameraProjection(bpy.types.Operator):
         if not self.specified_camera:
             layout.label(text="Camera Indexes: All available")
         else:
-            for i in range(0, len(self.available_camera_indexes), 6):
+            for i in range(0, 24, 6):
                 row = layout.row()
-                for j in range(i, min(i + 6, len(self.available_camera_indexes))):
-                    camera_index = self.available_camera_indexes[j]
-                    row.prop(self, "camera_indexes", index=j, text=str(camera_index))
+                for j in range(i, min(i + 6, 24)):
+                    index = j + 1
+                    if index in self.available_camera_indexes:
+                        row.prop(self, "camera_indexes", index=j, text=str(index))
 
     def invoke(self, context, event):
         active_obj = bpy.context.active_object
         if not active_obj:
-            self.popup_message("No object selected. Please select a mesh object with an appropriate material for overpainting.")
+            self.popup_message("No object selected. Please select an object to proceed.")
             return {'CANCELLED'}
         if active_obj.type != 'MESH':
-            self.popup_message("Selected object is not a mesh. Please select a mesh object with a suitable material for overpainting.")
+            self.popup_message("Selected object is not a mesh. Please select a mesh object.")
             return {'CANCELLED'}
         if not active_obj.active_material:
-            self.popup_message("The active object does not have an active material. Please select an object with a suitable material for overpainting.")
+            self.popup_message("The active object does not have an active material. Please assign a material.")
             return {'CANCELLED'}
         active_mat = active_obj.active_material
         nodes = active_mat.node_tree.nodes
@@ -208,10 +222,10 @@ class OverpaintCameraProjection(bpy.types.Operator):
             if node_found:
                 break
         if not node_found:
-            self.popup_message("The active material does not use an image containing 'overpaint' in the name or label. Please select an object with a suitable material for overpainting.")
+            self.popup_message("The active material does not use an image containing 'overpaint' in the name or label. Please assign a material with the correct image.")
             return {'CANCELLED'}
         if not self.available_camera_indexes:
-            self.popup_message("No PSD files found. Please make sure the PSD files exist in the specified paths.")
+            self.popup_message("No PSD files found. Please ensure the PSD files exist in the specified paths.")
             return {'CANCELLED'}
         return context.window_manager.invoke_props_dialog(self)
 
