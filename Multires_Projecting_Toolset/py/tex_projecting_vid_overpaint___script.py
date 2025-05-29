@@ -13,12 +13,6 @@ class OverpaintCameraBatchProjection(bpy.types.Operator):
     project_every_nth: bpy.props.IntProperty(name="Project Every nth", default=2, min=1)
     merge_mesh: bpy.props.BoolProperty(name="Merge Mesh", default=False)
 
-    def ensure_all_faces_selected(self, obj):
-        bpy.context.view_layer.objects.active = obj
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.select_all(action='SELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
-
     def execute(self, context):
         original_frame = bpy.context.scene.frame_current
         bpy.context.scene.frame_set(self.start_frame)
@@ -45,7 +39,6 @@ class OverpaintCameraBatchProjection(bpy.types.Operator):
             bpy.ops.object.duplicate_move(OBJECT_OT_duplicate={"linked":False, "mode":'TRANSLATION'})
             bpy.ops.object.join()
             merged_obj = bpy.context.active_object
-            self.ensure_all_faces_selected(merged_obj)
 
         for frame in range(self.start_frame, self.end_frame + 1, self.project_every_nth):
             if frame >= bpy.context.scene.frame_start and frame <= bpy.context.scene.frame_end:
@@ -109,6 +102,11 @@ class OverpaintCameraBatchProjection(bpy.types.Operator):
                         group_nodes.active = group_node
                         node_found = True
                         break
+                if node_found:
+                    # Activate the group node in the shader node tree
+                    node.select = True
+                    nodes.active = node
+                    break
             if node_found:
                 break
         if not node_found:
