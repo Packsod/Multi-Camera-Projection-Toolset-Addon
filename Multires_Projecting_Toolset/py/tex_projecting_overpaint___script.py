@@ -46,12 +46,6 @@ class OverpaintCameraProjection(bpy.types.Operator):
         bpy.context.collection.objects.link(new_obj)
         return new_obj
 
-    def ensure_all_faces_selected(self, obj):
-        bpy.context.view_layer.objects.active = obj
-        bpy.ops.object.mode_set(mode='EDIT')
-        bpy.ops.mesh.select_all(action='SELECT')
-        bpy.ops.object.mode_set(mode='OBJECT')
-
     def execute_projection(self, camera_indexes=None, merged_obj=None):
         bpy.ops.object.mode_set(mode='OBJECT')
         if merged_obj is None:
@@ -108,7 +102,7 @@ class OverpaintCameraProjection(bpy.types.Operator):
                         psd_op_in_data = self.psd_op_paths[i-1].split('/')[-1]
                         bpy.context.scene.camera = bpy.data.objects[self.CamP_objects[i-1]]
                         bpy.ops.paint.texture_paint_toggle()
-                        bpy.context.scene.tool_settings.image_paint.seam_bleed = 0
+                        bpy.context.scene.tool_settings.image_paint.seam_bleed = 3
                         bpy.context.scene.tool_settings.image_paint.use_occlude = True
                         bpy.context.scene.tool_settings.image_paint.use_backface_culling = True
                         bpy.ops.paint.project_image(image=psd_op_in_data)
@@ -148,7 +142,6 @@ class OverpaintCameraProjection(bpy.types.Operator):
             bpy.ops.object.duplicate_move(OBJECT_OT_duplicate={"linked":False, "mode":'TRANSLATION'})
             bpy.ops.object.join()
             merged_obj = bpy.context.active_object
-            self.ensure_all_faces_selected(merged_obj)
         else:
             merged_obj = None
 
@@ -185,13 +178,13 @@ class OverpaintCameraProjection(bpy.types.Operator):
     def invoke(self, context, event):
         active_obj = bpy.context.active_object
         if not active_obj:
-            self.popup_message("No object selected. Please select an object to proceed.")
+            self.popup_message("No object selected. Please select a mesh object with an appropriate material for overpainting.")
             return {'CANCELLED'}
         if active_obj.type != 'MESH':
-            self.popup_message("Selected object is not a mesh. Please select a mesh object.")
+            self.popup_message("Selected object is not a mesh. Please select a mesh object with a suitable material for overpainting.")
             return {'CANCELLED'}
         if not active_obj.active_material:
-            self.popup_message("The active object does not have an active material. Please assign a material.")
+            self.popup_message("The active object does not have an active material. Please select an object with a suitable material for overpainting.")
             return {'CANCELLED'}
         active_mat = active_obj.active_material
         nodes = active_mat.node_tree.nodes
@@ -218,14 +211,19 @@ class OverpaintCameraProjection(bpy.types.Operator):
                         group_nodes.active = group_node
                         node_found = True
                         break
+                if node_found:
+                    # Activate the group node in the shader node tree
+                    node.select = True
+                    nodes.active = node
+                    break
 
             if node_found:
                 break
         if not node_found:
-            self.popup_message("The active material does not use an image containing 'overpaint' in the name or label. Please assign a material with the correct image.")
+            self.popup_message("The active material does not use an image containing 'overpaint' in the name or label. Please select an object with a suitable material for overpainting.")
             return {'CANCELLED'}
         if not self.available_camera_indexes:
-            self.popup_message("No PSD files found. Please ensure the PSD files exist in the specified paths.")
+            self.popup_message("No PSD files found. Please make sure the PSD files exist in the specified paths.")
             return {'CANCELLED'}
         return context.window_manager.invoke_props_dialog(self)
 
