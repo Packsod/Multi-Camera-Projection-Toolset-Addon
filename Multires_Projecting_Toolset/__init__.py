@@ -289,6 +289,9 @@ categories["mp_cam_and_tex"]["operators"] = [
     create_operator_1("Cam_CamP_save", "backup CamP", "FILE_TEXT"),
     create_operator_1("Cam_CamP_restore", "restore CamP", "FILE_TEXT"),
     
+    create_operator_3("Cam_Main.MainCam_Switch", "Switch", "OUTLINER_OB_CAMERA"),
+    create_operator_3("Cam_Main.MainCam_Anim_Bake", "Anim Bake", "OUTLINER_OB_CAMERA"),
+    
     create_operator_3("Cam_Mist.set_distance", "set mist keyframes", "KEY_HLT"),
     
     create_operator_3("Cam_Switch.QShot_combine", "QShot combine", "OUTLINER_OB_CAMERA"),
@@ -304,6 +307,7 @@ categories["mp_cam_and_tex"]["row_data"] = [
     ("CamP operations", 1),
     ("", 2),
     ("", 0),
+    ("Main Cam operations", 2),
     ("z-depth picker insert keys", 1),
     ("others", 1),
 ]
