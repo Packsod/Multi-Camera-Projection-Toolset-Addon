@@ -59,6 +59,8 @@ class OverpaintCameraBatchProjection(bpy.types.Operator):
         bpy.context.scene.frame_set(original_frame)
         if merged_obj:
             bpy.data.objects.remove(merged_obj, do_unlink=True)
+        if merged_obj is None:
+            bpy.data.objects.remove(active_obj_copy, do_unlink=True)
         return {'FINISHED'}
 
     def draw(self, context):
