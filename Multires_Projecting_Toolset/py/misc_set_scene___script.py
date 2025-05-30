@@ -13,7 +13,7 @@ aov_names = ['normal_cam', 'Segmentation']
 # Define collection names to append
 collection_names = ['projecting']
 
-# ensure allow egative frames
+# ensure allow negative frames
 if not bpy.context.preferences.edit.use_negative_frames:
     bpy.context.preferences.edit.use_negative_frames = True
     bpy.ops.wm.save_userpref()
