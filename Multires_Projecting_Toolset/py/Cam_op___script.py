@@ -377,7 +377,120 @@ class Cam_Mist:
             bpy.context.window_manager.popup_menu(lambda self, context: 
                 self.layout.label(text="Current frame is not within the usable range."), 
                 title="Warning", icon='ERROR')
-                
+
+class Cam_Main:
+    @staticmethod
+    def MainCam_Switch():
+        class MainCamSwitchOperator(bpy.types.Operator):
+            """Bind Camera to Marker"""
+            bl_idname = "object.main_cam_switch"
+            bl_label = "MainCam Switch"
+            bl_options = {'REGISTER', 'UNDO'}
+
+            def get_camera_items(self, context):
+                items = []
+                for obj in bpy.data.objects:
+                    if obj.type == 'CAMERA' and not (obj.name.startswith("CamO_sub") or obj.name.startswith("CamP_sub")):
+                        items.append((obj.name, obj.name, ""))
+                return items
+
+            camera_name: bpy.props.EnumProperty(
+                name="Camera",
+                items=get_camera_items
+            )
+
+            def execute(self, context):
+                if self.camera_name in bpy.data.objects:
+                    camera = bpy.data.objects[self.camera_name]
+                    scene = bpy.context.scene
+                    frame_number = 1  # First frame in the timeline
+
+                    # Check if there's already a marker at the first frame
+                    existing_marker = None
+                    for marker in scene.timeline_markers:
+                        if marker.frame == frame_number:
+                            existing_marker = marker
+                            break
+
+                    if existing_marker:
+                        # If the marker already exists, update its camera
+                        existing_marker.camera = camera
+                    else:
+                        # If no marker exists at the first frame, create a new one
+                        new_marker = scene.timeline_markers.new(name="Camera Marker", frame=frame_number)
+                        new_marker.camera = camera
+
+                else:
+                    self.report({'ERROR'}, "Camera not found")
+                return {'FINISHED'}
+
+            def invoke(self, context, event):
+                return context.window_manager.invoke_props_dialog(self)
+
+        # Register and run the operator
+        bpy.utils.register_class(MainCamSwitchOperator)
+        bpy.ops.object.main_cam_switch('INVOKE_DEFAULT')
+
+    @staticmethod
+    def MainCam_Anim_Bake():
+        class MainCamAnimBakeOperator(bpy.types.Operator):
+            """MainCam Anim Bake"""
+            bl_idname = "object.main_cam_anim_bake"
+            bl_label = "MainCam Anim Bake"
+            bl_options = {'REGISTER', 'UNDO'}
+
+            def get_camera_items(self, context):
+                items = []
+                for obj in bpy.data.objects:
+                    if obj.type == 'CAMERA' and not (obj.name.startswith("CamO") or obj.name.startswith("CamP")):
+                        items.append((obj.name, obj.name, ""))
+                return items
+
+            camera_name: bpy.props.EnumProperty(
+                name="Camera Name",
+                items=get_camera_items
+            )
+
+            def execute(self, context):
+                if self.camera_name in bpy.data.objects:
+                    source_camera = bpy.data.objects[self.camera_name]
+                    # Duplicate the source camera
+                    bpy.ops.object.select_all(action='DESELECT')
+                    source_camera.select_set(True)
+                    bpy.context.view_layer.objects.active = source_camera
+                    bpy.ops.object.duplicate_move(OBJECT_OT_duplicate={"linked":False, "mode":'TRANSLATION'})
+                    target_camera = bpy.context.active_object
+
+                    # Rename the target camera
+                    target_camera.name = f"{self.camera_name}_baked"
+
+                    # Bake the source camera's animation to the target camera
+                    self.bake_camera_animation(source_camera, target_camera)
+                else:
+                    self.report({'ERROR'}, "Camera not found")
+                return {'FINISHED'}
+
+            def bake_camera_animation(self, source_camera, target_camera):
+                # Select the target camera
+                bpy.context.view_layer.objects.active = target_camera
+                target_camera.select_set(True)
+
+                # Set the frame range
+                start_frame = bpy.context.scene.frame_start
+                end_frame = bpy.context.scene.frame_end
+
+                # Bake the animation
+                bpy.ops.object.select_all(action='DESELECT')
+                target_camera.select_set(True)
+                bpy.context.view_layer.objects.active = target_camera
+                bpy.ops.nla.bake(frame_start=start_frame, frame_end=end_frame, step=1, only_selected=True, visual_keying=True, clear_constraints=True, clear_parents=True, bake_types={'OBJECT'}, use_current_action=False)
+
+            def invoke(self, context, event):
+                return context.window_manager.invoke_props_dialog(self)
+
+        # Register and run the operator
+        bpy.utils.register_class(MainCamAnimBakeOperator)
+        bpy.ops.object.main_cam_anim_bake('INVOKE_DEFAULT')
                 
 # Placeholder class and def
 class Placeholder:
