@@ -367,26 +367,55 @@ class Cam_Main:
                 # Set the default value
                 self.camera_name = camera_name
 
+            def record_frame_range(self, camera):
+                scene = bpy.context.scene
+                start_frame = scene.frame_start
+                end_frame = scene.frame_end
+                frame_range = f"{start_frame},{end_frame}"
+
+                # Remove existing custom property if it exists
+                if 'frame_range' in camera:
+                    del camera['frame_range']
+
+                # Add the new custom property
+                camera['frame_range'] = frame_range
+
+            def read_frame_range(self, camera):
+                if 'frame_range' in camera:
+                    frame_range_str = camera['frame_range']
+                    start_frame, end_frame = map(int, frame_range_str.split(','))
+                    bpy.context.scene.frame_start = start_frame
+                    bpy.context.scene.frame_end = end_frame
+
             def execute(self, context):
                 if self.camera_name in bpy.data.objects:
-                    camera = bpy.data.objects[self.camera_name]
+                    new_camera = bpy.data.objects[self.camera_name]
                     scene = bpy.context.scene
                     frame_number = 1  # First frame in the timeline
 
-                    # Check if there's already a marker at the first frame
-                    existing_marker = None
-                    for marker in scene.timeline_markers:
-                        if marker.frame == frame_number:
-                            existing_marker = marker
+                    # Get the marker at the first frame
+                    marker = None
+                    for m in scene.timeline_markers:
+                        if m.frame == frame_number:
+                            marker = m
                             break
 
-                    if existing_marker:
+                    if marker:
+                        # Record frame range for the current camera
+                        self.record_frame_range(marker.camera)
+
                         # If the marker already exists, update its camera
-                        existing_marker.camera = camera
+                        marker.camera = new_camera
                     else:
                         # If no marker exists at the first frame, create a new one
                         new_marker = scene.timeline_markers.new(name="Camera Marker", frame=frame_number)
-                        new_marker.camera = camera
+                        new_marker.camera = new_camera
+
+                        # skip Recording frame range for the new camera
+
+
+                    # Read frame range from the new camera
+                    self.read_frame_range(new_camera)
 
                 else:
                     self.report({'ERROR'}, "Camera not found")
