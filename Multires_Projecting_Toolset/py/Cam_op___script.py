@@ -83,111 +83,59 @@ class Cam_Visibility:
 
 class Cam_Switch:
     @staticmethod
-    def get_new_cam_name(prefix):
-        cam_list = [cam for cam in bpy.data.cameras if cam.name.startswith(prefix)]
-        cam_list.sort(key=lambda cam: int(cam.name.split(prefix)[1]))
-        if not cam_list:
-            return f"{prefix}01"
-        last_cam = cam_list[-1]
-        last_num = int(last_cam.name.split(prefix)[1])
-        if last_num >= 24:
-            bpy.context.window_manager.popup_menu(
-                lambda self, context: self.layout.label(text=f"Warning: You have set too many {prefix} cameras."),
-                title="Warning",
-                icon='INFO'
-            )
-            return None
-        new_num = str(last_num + 1).zfill(2)
-        return f"{prefix}{new_num}"
-
-    @staticmethod
-    def create_new_camera(new_cam_name):
-        new_cam = bpy.data.cameras.new(new_cam_name)
-        new_obj = bpy.data.objects.new(new_cam_name, new_cam)
-        new_cam.passepartout_alpha = 0.5
-        bpy.data.collections["projecting"].children["CamO"].objects.link(new_obj)
+    def CamP_fit_to_active():
         active_camera = bpy.context.scene.camera
-        if active_camera and bpy.context.space_data.region_3d.view_perspective == 'CAMERA':
-            active_cam_data = active_camera.data
-            for attr in ["lens", "shift_x", "shift_y", "clip_start", "clip_end", "sensor_width"]:
-                setattr(new_cam, attr, getattr(active_cam_data, attr))
-            new_obj.location = active_camera.location
-            new_obj.rotation_euler = active_camera.rotation_euler
-        else:
-            new_obj.matrix_world = bpy.context.region_data.view_matrix.inverted()
-            for attr in ["lens", "clip_start", "clip_end"]:
-                setattr(new_cam, attr, getattr(bpy.context.space_data, attr))
-        bpy.ops.object.select_all(action='DESELECT')
-        bpy.context.view_layer.objects.active = new_obj
-        new_obj.select_set(True)
-        return new_obj
-
-    @staticmethod
-    def CamO_fit_to_active():
-        if "projecting" in bpy.data.collections and "CamO" in bpy.data.collections["projecting"].children:
-            new_cam_name = Cam_Switch.get_new_cam_name("CamO_sub")
-            if new_cam_name is not None:
-                Cam_Switch.create_new_camera(new_cam_name)
-        Cam_Switch.update_markers()
-
-    @staticmethod
-    def CamP_fit_to_CamO():
-        CamO_objects = [f"CamO_sub{str(i).zfill(2)}" for i in range(1, 25)]
-        CamP_objects = [f"CamP_sub{str(i).zfill(2)}" for i in range(1, 25)]
-        existing_CamO = [cam for cam in bpy.data.objects if cam.name in CamO_objects and not cam.hide_viewport]
-        if not existing_CamO:
+        if not active_camera:
             bpy.context.window_manager.popup_menu(
-                lambda self, context: self.layout.label(text="Warning: No cameras from CamO_objects exist in data or they are disabled in viewport."),
-                title="Warning",
-                icon='INFO'
+                lambda self, context: self.layout.label(text="Error: No active camera."),
+                title="Error",
+                icon='ERROR'
             )
-        else:
-            existing_CamP = [cam for cam in bpy.data.objects if cam.name in CamP_objects]
-            if len(existing_CamP) != len(CamP_objects):
-                bpy.context.window_manager.popup_menu(
-                    lambda self, context: self.layout.label(text="Warning: Some cameras from CamP_objects do not exist in data. Please check and fix."),
-                    title="Warning",
-                    icon='INFO'
-                )
-            elif len(existing_CamP) == 0:
-                bpy.context.window_manager.popup_menu(
-                    lambda self, context: self.layout.label(text="Warning: Please run the 'set scene' script to import preset components first."),
-                    title="Warning",
-                    icon='INFO'
-                )
-            else:
-                for CamO in existing_CamO:
-                    index = int(CamO.name.split('CamO_sub')[1])
-                    CamP_name = CamP_objects[index - 1]
-                    CamP = bpy.data.objects.get(CamP_name)
-                    if CamP is not None:
-                        CamP.location = CamO.location
-                        CamP.rotation_euler = CamO.rotation_euler
-                        for attr in ["lens", "shift_x", "shift_y", "clip_start", "clip_end", "sensor_width"]:
-                            setattr(CamP.data, attr, getattr(CamO.data, attr))
+            return
 
-    @staticmethod
-    def update_markers():
-        scene = bpy.context.scene
-        camera_names_1 = [f"CamO_sub{i:02d}" for i in range(1, 25)]
-        markers_1 = {f"CamO_sub{i:02d}": {"frame": -100 - i, "camera": f"CamO_sub{i:02d}"} for i in range(1, 25)}
-        camera_names_2 = [f"CamP_sub{i:02d}" for i in range(1, 25)]
-        markers_2 = {f"CamP_sub{i:02d}": {"frame": -i, "camera": f"CamP_sub{i:02d}", "frame_time": 0.00} for i in range(1, 25)}
-        markers = {**markers_1, **markers_2}
-        existing_frames = [marker.frame for marker in scene.timeline_markers]
-        for name, m_data in markers.items():
-            camera = bpy.data.objects.get(m_data["camera"])
-            if camera is not None:
-                if m_data["frame"] in existing_frames:
-                    existing_marker = next(marker for marker in scene.timeline_markers if marker.frame == m_data["frame"])
-                    if existing_marker.camera != camera:
-                        existing_marker.camera = camera
+        cam_list = [f"CamP_sub{str(i).zfill(2)}" for i in range(1, 25)]
+        cam_objects = {name: bpy.data.objects.get(name) for name in cam_list}
+        existing_cam_names = [name for name, cam in cam_objects.items() if cam]
+
+        class CamP_fit_to_active_Operator(bpy.types.Operator):
+            bl_idname = "object.camp_fit_to_active"
+            bl_label = "CamP_fit_to_active"
+            bl_options = {'REGISTER'}
+
+            selected_cam_index: bpy.props.IntProperty(name="CamP ind(1~24)", description="Specific a CamP_sub to apply", default=1, min=1, max=24)
+
+            def invoke(self, context, event):
+                wm = context.window_manager
+                return wm.invoke_props_dialog(self)
+
+            def execute(self, context):
+                selected_cam_name = f"CamP_sub{str(self.selected_cam_index).zfill(2)}"
+                target_cam = bpy.data.objects.get(selected_cam_name)
+                if target_cam:
+                    if active_camera and context.space_data.region_3d.view_perspective == 'CAMERA':
+                        active_cam_data = active_camera.data
+                        for attr in ["lens", "shift_x", "shift_y", "clip_start", "clip_end", "sensor_width"]:
+                            setattr(target_cam.data, attr, getattr(active_cam_data, attr))
+                        target_cam.location = active_camera.location
+                        target_cam.rotation_euler = active_camera.rotation_euler
+                    else:
+                        target_cam.matrix_world = context.region_data.view_matrix.inverted()
+                        for attr in ["lens", "clip_start", "clip_end"]:
+                            setattr(target_cam.data, attr, getattr(context.space_data, attr))
+                    self.report({'INFO'}, f"CamP_sub{self.selected_cam_index} updated successfully.")
                 else:
-                    marker = scene.timeline_markers.new(name, frame=m_data["frame"])
-                    marker.camera = camera
-            elif m_data["frame"] in existing_frames:
-                marker_to_remove = next(marker for marker in scene.timeline_markers if marker.frame == m_data["frame"])
-                scene.timeline_markers.remove(marker_to_remove)
+                    bpy.context.window_manager.popup_menu(
+                        lambda self, context: self.layout.label(text=f"Error: Camera {selected_cam_name} does not exist."),
+                        title="Error",
+                        icon='ERROR'
+                    )
+                return {'FINISHED'}
+
+        # Register the operator if it hasn't been registered yet
+        if CamP_fit_to_active_Operator.bl_idname not in bpy.types.Operator.__subclasses__():
+            bpy.utils.register_class(CamP_fit_to_active_Operator)
+
+        bpy.ops.object.camp_fit_to_active('INVOKE_DEFAULT')
                 
     @staticmethod
     def QShot_combine():
@@ -399,6 +347,26 @@ class Cam_Main:
                 items=get_camera_items
             )
 
+            def __init__(self):
+                # Get the marker at the first frame
+                scene = bpy.context.scene
+                frame_number = 1  # First frame in the timeline
+                camera_name = None
+
+                for marker in scene.timeline_markers:
+                    if marker.frame == frame_number:
+                        camera_name = marker.camera.name
+                        break
+
+                # If no marker, use the first valid camera as default
+                if camera_name is None:
+                    camera_objects = [obj for obj in bpy.data.objects if obj.type == 'CAMERA' and not (obj.name.startswith("CamO_sub") or obj.name.startswith("CamP_sub"))]
+                    if camera_objects:
+                        camera_name = camera_objects[0].name
+
+                # Set the default value
+                self.camera_name = camera_name
+
             def execute(self, context):
                 if self.camera_name in bpy.data.objects:
                     camera = bpy.data.objects[self.camera_name]
@@ -427,8 +395,10 @@ class Cam_Main:
             def invoke(self, context, event):
                 return context.window_manager.invoke_props_dialog(self)
 
-        # Register and run the operator
-        bpy.utils.register_class(MainCamSwitchOperator)
+        # Register the operator if it hasn't been registered yet
+        if MainCamSwitchOperator.bl_idname not in bpy.types.Operator.__subclasses__():
+            bpy.utils.register_class(MainCamSwitchOperator)
+
         bpy.ops.object.main_cam_switch('INVOKE_DEFAULT')
 
     @staticmethod
@@ -451,7 +421,22 @@ class Cam_Main:
                 items=get_camera_items
             )
 
+            start_frame: bpy.props.IntProperty(
+                name="Start Frame",
+                default=bpy.context.scene.frame_start,
+                description="The start frame for baking the animation"
+            )
+
+            end_frame: bpy.props.IntProperty(
+                name="End Frame",
+                default=bpy.context.scene.frame_end,
+                description="The end frame for baking the animation"
+            )
+
             def execute(self, context):
+                original_start_frame = bpy.context.scene.frame_start
+                original_end_frame = bpy.context.scene.frame_end
+
                 if self.camera_name in bpy.data.objects:
                     source_camera = bpy.data.objects[self.camera_name]
                     # Duplicate the source camera
@@ -464,20 +449,29 @@ class Cam_Main:
                     # Rename the target camera
                     target_camera.name = f"{self.camera_name}_baked"
 
+                    # Rename the target camera's data
+                    target_camera.data.name = f"{self.camera_name}_baked"
+
                     # Bake the source camera's animation to the target camera
-                    self.bake_camera_animation(source_camera, target_camera)
+                    self.bake_camera_animation(source_camera, target_camera, self.start_frame, self.end_frame)
+
                 else:
                     self.report({'ERROR'}, "Camera not found")
+
+                # Restore original frame range
+                bpy.context.scene.frame_start = original_start_frame
+                bpy.context.scene.frame_end = original_end_frame
+
                 return {'FINISHED'}
 
-            def bake_camera_animation(self, source_camera, target_camera):
+            def bake_camera_animation(self, source_camera, target_camera, start_frame, end_frame):
                 # Select the target camera
                 bpy.context.view_layer.objects.active = target_camera
                 target_camera.select_set(True)
 
                 # Set the frame range
-                start_frame = bpy.context.scene.frame_start
-                end_frame = bpy.context.scene.frame_end
+                bpy.context.scene.frame_start = start_frame
+                bpy.context.scene.frame_end = end_frame
 
                 # Bake the animation
                 bpy.ops.object.select_all(action='DESELECT')
@@ -488,9 +482,12 @@ class Cam_Main:
             def invoke(self, context, event):
                 return context.window_manager.invoke_props_dialog(self)
 
-        # Register and run the operator
-        bpy.utils.register_class(MainCamAnimBakeOperator)
+        # Register the operator if it hasn't been registered yet
+        if MainCamAnimBakeOperator.bl_idname not in bpy.types.Operator.__subclasses__():
+            bpy.utils.register_class(MainCamAnimBakeOperator)
+
         bpy.ops.object.main_cam_anim_bake('INVOKE_DEFAULT')
+
                 
 # Placeholder class and def
 class Placeholder:
