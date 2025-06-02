@@ -279,12 +279,8 @@ categories["mp_cam_and_tex"]["operators"] = [
     create_operator_3("Cam_Visibility.hide_all_objects", "all", "HIDE_ON"),
     create_operator_3("Cam_Visibility.show_all_objects", "all","HIDE_OFF"),
     
-    create_operator_3("Cam_Switch.CamO_fit_to_active", "active → CamO", "OUTLINER_OB_CAMERA"),
-    create_operator_3("Cam_Switch.update_markers", "", "FILE_REFRESH"),
-    create_operator_3("Cam_Switch.CamP_fit_to_CamO", "CamO → CamP", "VIEW_CAMERA"),
-    create_operator_3("Placeholder.nothing", "", "BLANK1"),
-
     create_operator_1("Cam_CamP_render", "CN img export", "EXPORT"),
+    create_operator_3("Cam_Switch.CamP_fit_to_active", "active → CamP", "OUTLINER_OB_CAMERA"),
     
     create_operator_1("Cam_CamP_save", "backup CamP", "FILE_TEXT"),
     create_operator_1("Cam_CamP_restore", "restore CamP", "FILE_TEXT"),
@@ -301,13 +297,13 @@ categories["mp_cam_and_tex"]["row_data"] = [
     ("overpaint", 3),
     ("", 3),
     ("obj visibility -frames", 3),
-    ("camera fit", 2),
-    ("", 2),
     ("", 0),
     ("CamP operations", 1),
+    ("", 1),   
     ("", 2),
     ("", 0),
     ("Main Cam operations", 2),
+    ("", 0),
     ("z-depth picker insert keys", 1),
     ("others", 1),
 ]
