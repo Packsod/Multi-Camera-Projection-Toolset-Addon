@@ -168,9 +168,9 @@ class OverpaintCameraProjection(bpy.types.Operator):
         if not self.specified_camera:
             layout.label(text="Camera Indexes: All available")
         else:
-            for i in range(0, 24, 6):
+            for i in range(0, 24, 8):
                 row = layout.row()
-                for j in range(i, min(i + 6, 24)):
+                for j in range(i, min(i + 8, 24)):
                     index = j + 1
                     if index in self.available_camera_indexes:
                         row.prop(self, "camera_indexes", index=j, text=str(index))
@@ -227,5 +227,8 @@ class OverpaintCameraProjection(bpy.types.Operator):
             return {'CANCELLED'}
         return context.window_manager.invoke_props_dialog(self)
 
-bpy.utils.register_class(OverpaintCameraProjection)
+# Register the operator if it hasn't been registered yet
+if OverpaintCameraProjection.bl_idname not in bpy.types.Operator.__subclasses__():
+    bpy.utils.register_class(OverpaintCameraProjection)
+
 bpy.ops.object.overpaint_camera_projection('INVOKE_DEFAULT')
