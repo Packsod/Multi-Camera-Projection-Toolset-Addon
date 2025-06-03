@@ -121,5 +121,8 @@ class OverpaintCameraBatchProjection(bpy.types.Operator):
             self.layout.label(text=message)
         bpy.context.window_manager.popup_menu(draw, title="Information", icon='INFO')
 
-bpy.utils.register_class(OverpaintCameraBatchProjection)
+# Register the operator if it hasn't been registered yet
+if OverpaintCameraBatchProjection.bl_idname not in bpy.types.Operator.__subclasses__():
+    bpy.utils.register_class(OverpaintCameraBatchProjection)
+
 bpy.ops.object.overpaint_camera_batch_projection('INVOKE_DEFAULT')
