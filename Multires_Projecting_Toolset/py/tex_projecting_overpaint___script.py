@@ -79,6 +79,11 @@ class OverpaintCameraProjection(bpy.types.Operator):
         else:
             active_obj_copy = merged_obj
 
+        # Select all faces of active_obj_copy
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+
         if camera_indexes is None:
             for i in self.available_camera_indexes:
                 if self.CamP_objects[i-1] in bpy.data.objects:
