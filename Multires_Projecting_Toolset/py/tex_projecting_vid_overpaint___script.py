@@ -40,6 +40,11 @@ class OverpaintCameraBatchProjection(bpy.types.Operator):
             bpy.ops.object.join()
             merged_obj = bpy.context.active_object
 
+        # Select all faces of active_obj_copy
+        bpy.ops.object.mode_set(mode='EDIT')
+        bpy.ops.mesh.select_all(action='SELECT')
+        bpy.ops.object.mode_set(mode='OBJECT')
+
         for frame in range(self.start_frame, self.end_frame + 1, self.project_every_nth):
             if frame >= bpy.context.scene.frame_start and frame <= bpy.context.scene.frame_end:
                 bpy.context.scene.frame_set(frame)
