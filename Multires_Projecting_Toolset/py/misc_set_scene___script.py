@@ -115,3 +115,58 @@ for obj in scene.objects:
             first_frame = layer.frames[0]
             if first_frame.frame_number != -24:
                 first_frame.frame_number = -24
+
+
+def bind_CamPs_to_timeline(prefix="CamP_sub", start_number=1, end_number=24):
+    """
+    Bind CamP cameras to the timeline with specified naming convention and frame range.
+    """
+    # Remove markers related to CamPs that are not in the range of -1 to -24 frames
+    markers_to_remove = []
+    for marker in bpy.context.scene.timeline_markers:
+        for i in range(start_number, end_number + 1):
+            camera_name = f"{prefix}{i:02d}"
+            if marker.name == camera_name and marker.frame not in range(-1, -end_number - 1, -1):
+                markers_to_remove.append(marker)
+
+    for marker in markers_to_remove:
+        bpy.context.scene.timeline_markers.remove(marker)
+
+    # Traverse each CamP name and bind it to the corresponding frame
+    for i in range(start_number, end_number + 1):
+        camera_name = f"{prefix}{i:02d}"
+        frame_number = -i
+
+        # Check if CamPs exists
+        if camera_name in bpy.data.objects:
+            camera = bpy.data.objects[camera_name]
+
+            # Check if the CamP is already bound
+            is_bound = False
+            for marker in bpy.context.scene.timeline_markers:
+                if marker.frame == frame_number and marker.camera == camera:
+                    is_bound = True
+                    break
+
+            # If the CamP is not bound, perform the binding operation
+            if not is_bound:
+                # Check if there are other markers on the frame and delete them
+                markers_to_remove = []
+                for marker in bpy.context.scene.timeline_markers:
+                    if marker.frame == frame_number:
+                        markers_to_remove.append(marker)
+
+                for marker in markers_to_remove:
+                    bpy.context.scene.timeline_markers.remove(marker)
+
+                # Create a new marker
+                marker = bpy.context.scene.timeline_markers.new(name=camera_name, frame=frame_number)
+                # Set the CamP as the marker's data
+                marker.camera = camera
+        else:
+            print(f"Camera {camera_name} does not exist")
+
+    print("All cameras have been successfully bound to the timeline.")
+
+# Bind CamPs to the timeline
+bind_CamPs_to_timeline()
