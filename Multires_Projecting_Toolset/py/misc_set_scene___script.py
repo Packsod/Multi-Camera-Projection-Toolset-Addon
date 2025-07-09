@@ -13,10 +13,14 @@ aov_names = ['normal_cam', 'Segmentation']
 # Define collection names to append
 collection_names = ['projecting']
 
-# ensure allow negative frames
+# Ensure allow negative frames
 if not bpy.context.preferences.edit.use_negative_frames:
     bpy.context.preferences.edit.use_negative_frames = True
     bpy.ops.wm.save_userpref()
+
+# Ensure view_transform is set to 'Standard'
+if scene.view_settings.view_transform != 'Standard':
+    scene.view_settings.view_transform = 'Standard'
 
 # Enable nodes for the scene and set necessary view layer properties
 scene.use_nodes = True
