@@ -25,6 +25,7 @@ def manage_material_and_node_group():
 
         nodes = node_tree.nodes
         psd_image = f"CamP_sub{index:02d}_render.psd"
+        webm_image = f"CamP_sub{index:02d}_render.webm"
         tex_image_node = f"CamP_sub{index:02d}_render"
         img_conv_node = f"projection_layer{index:02d}"
         layer_mixer = '(24) layer_mixer'
@@ -37,28 +38,45 @@ def manage_material_and_node_group():
             base_path = bpy.data.scenes[bpy.context.scene.name].node_tree.nodes["Output_path_MP"].base_path
             base_path = base_path.format(camera=f"CamP_sub{index:02d}")
             psd_path = os.path.join(os.path.dirname(bpy.data.filepath), base_path, psd_image)
+            webm_path = os.path.join(os.path.dirname(bpy.data.filepath), base_path, webm_image)
         except Exception:
             psd_path = os.path.join(os.path.dirname(bpy.data.filepath), f"multires_projecting/CamP_sub{index:02d}/{psd_image}")
+            webm_path = os.path.join(os.path.dirname(bpy.data.filepath), f"multires_projecting/CamP_sub{index:02d}/{webm_image}")
 
         if not all([check_node_exists(nodes, node) for node in [tex_image_node, img_conv_node, layer_mixer]]):
             popup_message("One or more nodes do not exist in the current node tree.")
             return
 
-        if os.path.exists(bpy.path.abspath(psd_path)):
-            if psd_image not in bpy.data.images:
-                bpy.data.images.load(bpy.path.abspath(psd_path))
-            image = bpy.data.images[psd_image]
-            if 'autoreload_modification_time' not in image or str(os.path.getmtime(bpy.path.abspath(psd_path))) != image['autoreload_modification_time']:
-                image.reload()
-                image['autoreload_modification_time'] = str(os.path.getmtime(bpy.path.abspath(psd_path)))
+        if os.path.exists(bpy.path.abspath(webm_path)):
+            psd_image = webm_image
+        elif os.path.exists(bpy.path.abspath(psd_path)):
+            psd_image = psd_image
+        else:
+            nodes[tex_image_node].use_custom_color = False
+            return
+
+        if psd_image not in bpy.data.images:
+            bpy.data.images.load(bpy.path.abspath(os.path.join(os.path.dirname(bpy.data.filepath), base_path, psd_image)))
+        image = bpy.data.images[psd_image]
+        if 'autoreload_modification_time' not in image or str(os.path.getmtime(bpy.path.abspath(os.path.join(os.path.dirname(bpy.data.filepath), base_path, psd_image)))) != image['autoreload_modification_time']:
+            image.reload()
+            image['autoreload_modification_time'] = str(os.path.getmtime(bpy.path.abspath(os.path.join(os.path.dirname(bpy.data.filepath), base_path, psd_image))))
 
         if not nodes[tex_image_node].mute:
-            if os.path.exists(bpy.path.abspath(psd_path)):
-                if psd_image not in bpy.data.images:
-                    bpy.data.images.load(bpy.path.abspath(psd_path))
+            if os.path.exists(bpy.path.abspath(os.path.join(os.path.dirname(bpy.data.filepath), base_path, psd_image))):
                 nodes[tex_image_node].image = bpy.data.images[psd_image]
                 node_tree.links.new(nodes[img_conv_node].outputs[out_c], nodes[layer_mixer].inputs[socket_in])
                 node_tree.links.new(nodes[img_conv_node].outputs[out_a], nodes[layer_mixer].inputs[socket_in_a])
+                if psd_image == webm_image:
+                    nodes[tex_image_node].use_custom_color = True
+                    nodes[tex_image_node].color = (0.12, 0.42, 0.50)
+                    nodes[tex_image_node].image_user.use_cyclic = True
+                    nodes[tex_image_node].image_user.use_auto_refresh = True
+                    nodes[tex_image_node].image_user.frame_duration = image.frame_duration
+
+                else:
+                    nodes[tex_image_node].use_custom_color = True
+                    nodes[tex_image_node].color = (0.34, 0.55, 0.80)
             else:
                 nodes[tex_image_node].image = None
                 nodes[tex_image_node].mute = True
@@ -69,6 +87,7 @@ def manage_material_and_node_group():
                     pass
         else:
             nodes[tex_image_node].image = None
+            nodes[tex_image_node].use_custom_color = False
             try:
                 node_tree.links.remove(nodes[layer_mixer].inputs[socket_in].links[0])
                 node_tree.links.remove(nodes[layer_mixer].inputs[socket_in_a].links[0])
@@ -120,7 +139,7 @@ def manage_material_and_node_group():
     for image in bpy.data.images:
         if image.users == 0:
             bpy.data.images.remove(image)
-            
+
 
     def check_rgb_curves():
         shader_editor = get_shader_editor()
