@@ -21,7 +21,7 @@ def manage_material_and_node_group():
     def update_material(node_tree, index):
         if node_tree is None:
             popup_message("No node tree is currently active.")
-            return
+            return None
 
         nodes = node_tree.nodes
         psd_image = f"CamP_sub{index:02d}_render.psd"
@@ -45,7 +45,7 @@ def manage_material_and_node_group():
 
         if not all([check_node_exists(nodes, node) for node in [tex_image_node, img_conv_node, layer_mixer]]):
             popup_message("One or more nodes do not exist in the current node tree.")
-            return
+            return None
 
         if os.path.exists(bpy.path.abspath(webm_path)):
             psd_image = webm_image
@@ -53,7 +53,7 @@ def manage_material_and_node_group():
             psd_image = psd_image
         else:
             nodes[tex_image_node].use_custom_color = False
-            return
+            return None
 
         if psd_image not in bpy.data.images:
             bpy.data.images.load(bpy.path.abspath(os.path.join(os.path.dirname(bpy.data.filepath), base_path, psd_image)))
@@ -94,13 +94,17 @@ def manage_material_and_node_group():
             except:
                 pass
 
-    def update_node_group(index):
+        # Disable use_extra_user for psd_image data, to avoid being unable to delete webm source flie in OS
+        image.use_extra_user = False
+
+        return psd_image
+
+    def update_node_group(index, psd_image):
         node_group = bpy.data.node_groups['.cam_projection_all']
         if node_group is None:
             popup_message("No node group '.cam_projection_all' is currently available.")
             return
 
-        psd_image = f"CamP_sub{index:02d}_render.psd"
         cam_projection = f'cam_projection_{str(index).zfill(2)}'
         cam_object = f'CamP_sub{index:02d}'
 
@@ -133,13 +137,13 @@ def manage_material_and_node_group():
         popup_message("No Shader Editor is currently open or no node tree is currently active.")
     else:
         for i in range(1, 25):
-            update_material(shader_editor.edit_tree, i)
-            update_node_group(i)
+            psd_image = update_material(shader_editor.edit_tree, i)
+            if psd_image is not None:
+                update_node_group(i, psd_image)
 
     for image in bpy.data.images:
         if image.users == 0:
             bpy.data.images.remove(image)
-
 
     def check_rgb_curves():
         shader_editor = get_shader_editor()
