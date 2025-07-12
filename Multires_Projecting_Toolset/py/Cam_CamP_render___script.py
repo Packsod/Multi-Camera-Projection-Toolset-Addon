@@ -8,12 +8,11 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
     render_CamP: bpy.props.IntProperty(name="Select CamP ind(1~24)", description="Specify a CamP_sub to render controlnet images", default=1, min=1, max=24)
     render_video: bpy.props.BoolProperty(name="Render Video", description="Enable video rendering mode", default=False)
     frame_start: bpy.props.IntProperty(name="Frame Start", description="Start frame of the video", default=1, min=1)
-    frame_end: bpy.props.IntProperty(name="Frame End", description="End frame of the video", default=250, min=1)
+    frame_count: bpy.props.IntProperty(name="Frame Count", description="Total number of frames to render", default=121, min=1)
 
     def invoke(self, context, event):
         wm = context.window_manager
         self.frame_start = context.scene.frame_start
-        self.frame_end = context.scene.frame_end
         return wm.invoke_props_dialog(self)
 
     def draw(self, context):
@@ -22,7 +21,7 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
         layout.prop(self, "render_video")
         if self.render_video:
             layout.prop(self, "frame_start")
-            layout.prop(self, "frame_end")
+            layout.prop(self, "frame_count")
 
     def execute(self, context):
         import os
@@ -67,11 +66,13 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
             self.report({'ERROR'}, 'Node "Output_path_MP" not found or missing base_path attribute')
             return {'CANCELLED'}
 
-        # Note that // means a network path in Windows,
-        # so you need to remove the slashes in the string that you inputed in Output_path_MP,
-        # then append it with os.listdir(),
-        # otherwise bpy will report that the network path cannot be found.
-        # This is really annoying.
+        """
+        Note that // means a network path in Windows,
+        so need to remove the slashes in the string that you inputed in Output_path_MP,
+        then append it with os.listdir(),
+        otherwise bpy will report that the network path cannot be found.
+        This is really annoying.
+        """
 
         relative_output_directory = output_path_node.base_path.replace("{camera}", bpy.context.scene.camera.name).lstrip('/') + '/'
         output_directory = os.path.join(blend_file_dir, relative_output_directory)
@@ -79,14 +80,20 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
         # Create the output directory if it doesn't exist
         os.makedirs(output_directory, exist_ok=True)
 
-        # Delete any existing PNG and MP4 files in the output directory
-        try:
-            for filename in os.listdir(output_directory):
-                if filename.endswith(".png") or filename.endswith(".mp4"):
-                    file_path = os.path.join(output_directory, filename)
-                    os.remove(file_path)
-        except FileNotFoundError:
-            pass
+        # Delete existing files based on the render mode
+        def delete_files_by_extension(directory, extension):
+            try:
+                for filename in os.listdir(directory):
+                    if filename.endswith(extension):
+                        file_path = os.path.join(directory, filename)
+                        os.remove(file_path)
+            except FileNotFoundError:
+                pass
+
+        if self.render_video:
+            delete_files_by_extension(output_directory, ".mp4")
+        else:
+            delete_files_by_extension(output_directory, ".png")
 
         # Set the render filepath to the output directory
         bpy.context.scene.render.filepath = os.path.join(output_directory, camera_name)
@@ -102,7 +109,7 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
 
             # Set render settings for video
             bpy.context.scene.frame_start = self.frame_start
-            bpy.context.scene.frame_end = self.frame_end
+            bpy.context.scene.frame_end = self.frame_start + self.frame_count - 1
 
             # Set render settings for video
             bpy.context.scene.render.image_settings.file_format = 'FFMPEG'
