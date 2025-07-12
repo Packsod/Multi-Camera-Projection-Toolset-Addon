@@ -1,24 +1,42 @@
 import bpy
 
-class RenderSelectedFrameOperator(bpy.types.Operator):
-    bl_idname = "scene.render_selected_frame"
-    bl_label = "export by specified CamP_sub"
+class RenderSelectedCamPOperator(bpy.types.Operator):
+    bl_idname = "scene.render_selected_camp"
+    bl_label = "Render Selected CamP"
     bl_options = {'REGISTER'}
 
-    selected_frame: bpy.props.IntProperty(name="CamP ind(1~24)", description="Specific a CamP_sub to export", default=1, min=1, max=24)
+    render_CamP: bpy.props.IntProperty(name="Select CamP ind(1~24)", description="Specify a CamP_sub to render controlnet images", default=1, min=1, max=24)
+    render_video: bpy.props.BoolProperty(name="Render Video", description="Enable video rendering mode", default=False)
+    frame_start: bpy.props.IntProperty(name="Frame Start", description="Start frame of the video", default=1, min=1)
+    frame_end: bpy.props.IntProperty(name="Frame End", description="End frame of the video", default=250, min=1)
 
     def invoke(self, context, event):
         wm = context.window_manager
+        self.frame_start = context.scene.frame_start
+        self.frame_end = context.scene.frame_end
         return wm.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        layout.prop(self, "render_CamP")
+        layout.prop(self, "render_video")
+        if self.render_video:
+            layout.prop(self, "frame_start")
+            layout.prop(self, "frame_end")
 
     def execute(self, context):
         import os
         import re
-        # Save the current frame, image settings, and use_nodes setting
+
+        # Save the current frame, image settings, use_nodes setting, and timeline frame range
         current_frame = bpy.context.scene.frame_current
         current_file_format = bpy.context.scene.render.image_settings.file_format
         current_use_overwrite = bpy.context.scene.render.use_overwrite
         current_use_nodes = bpy.context.scene.use_nodes
+        original_camera = bpy.context.scene.camera
+        original_render_filepath = bpy.context.scene.render.filepath
+        original_frame_start = bpy.context.scene.frame_start
+        original_frame_end = bpy.context.scene.frame_end
 
         # Set the image settings to PNG format and enable overwrite
         bpy.context.scene.render.image_settings.file_format = 'PNG'
@@ -26,54 +44,117 @@ class RenderSelectedFrameOperator(bpy.types.Operator):
         bpy.context.scene.use_nodes = True
 
         # Calculate the selected frame
-        selected_frame = -self.selected_frame
-        # Jump to the selected frame and render
-        bpy.context.scene.frame_set(selected_frame)
+        current_frame_new = -self.render_CamP
+
+        # Get the name of the camera to use for rendering
+        camera_name = "CamP_sub%02d" % self.render_CamP
+
+        # Check if the camera exists
+        if camera_name not in bpy.data.objects:
+            self.report({'ERROR'}, f'Camera {camera_name} does not exist')
+            return {'CANCELLED'}
+
+        # Set the camera to use for rendering
+        bpy.context.scene.camera = bpy.data.objects[camera_name]
 
         # Directory where the PNG files are located
         blend_file_dir = os.path.dirname(bpy.data.filepath)
+        node_tree = bpy.data.scenes[bpy.context.scene.name].node_tree
+
+        # Check if the "Output_path_MP" node exists
+        output_path_node = node_tree.nodes.get("Output_path_MP")
+        if not output_path_node or not hasattr(output_path_node, "base_path"):
+            self.report({'ERROR'}, 'Node "Output_path_MP" not found or missing base_path attribute')
+            return {'CANCELLED'}
+
         # Note that // means a network path in Windows,
         # so you need to remove the slashes in the string that you inputed in Output_path_MP,
         # then append it with os.listdir(),
         # otherwise bpy will report that the network path cannot be found.
         # This is really annoying.
-        relative_output_directory = bpy.data.scenes[bpy.context.scene.name].node_tree.nodes["Output_path_MP"].base_path.replace("{camera}", bpy.context.scene.camera.name).lstrip('/') + '/'
+
+        relative_output_directory = output_path_node.base_path.replace("{camera}", bpy.context.scene.camera.name).lstrip('/') + '/'
         output_directory = os.path.join(blend_file_dir, relative_output_directory)
 
-        # Delete any existing PNG files in the output directory
+        # Create the output directory if it doesn't exist
+        os.makedirs(output_directory, exist_ok=True)
+
+        # Delete any existing PNG and MP4 files in the output directory
         try:
             for filename in os.listdir(output_directory):
-                if filename.endswith(".png"):
+                if filename.endswith(".png") or filename.endswith(".mp4"):
                     file_path = os.path.join(output_directory, filename)
                     os.remove(file_path)
         except FileNotFoundError:
             pass
 
-        # Render the selected frame
-        bpy.ops.render.render(write_still=True)
+        # Set the render filepath to the output directory
+        bpy.context.scene.render.filepath = os.path.join(output_directory, camera_name)
 
-        # Iterate through all PNG files in the directory and rename them if necessary
-        for filename in os.listdir(output_directory):
-            if filename.endswith(".png"):
-                match = re.search(r'-(?P<frame_number>\d{4})\.png$', filename)
-                if match:
-                    new_filename = filename.replace(match.group(0), "") + ".png"
-                    os.rename(os.path.join(output_directory, filename), os.path.join(output_directory, new_filename))
+        if self.render_video:
+            # Record all current camera markers and their positions
+            original_markers = [(marker.name, marker.frame, marker.camera) for marker in bpy.context.scene.timeline_markers if marker.camera]
 
-        # Jump back to the original frame and restore the original image settings
+            # Remove all camera markers
+            for marker in bpy.context.scene.timeline_markers:
+                if marker.camera:
+                    bpy.context.scene.timeline_markers.remove(marker)
+
+            # Set render settings for video
+            bpy.context.scene.frame_start = self.frame_start
+            bpy.context.scene.frame_end = self.frame_end
+
+            # Set render settings for video
+            bpy.context.scene.render.image_settings.file_format = 'FFMPEG'
+            bpy.context.scene.render.ffmpeg.format = 'MPEG4'
+            bpy.context.scene.render.resolution_percentage = 100
+
+            # Render the animation
+            bpy.ops.render.opengl(animation=True, view_context=True)
+
+            # Restore the original camera markers to their original positions
+            for name, frame, camera in original_markers:
+                if camera and camera.name in bpy.data.objects:
+                    marker = bpy.context.scene.timeline_markers.new(name=name, frame=frame)
+                    marker.camera = bpy.data.objects[camera.name]
+
+        else:
+            # Jump to the selected frame and render
+            bpy.context.scene.frame_set(current_frame_new)
+
+            # Render the selected frame
+            bpy.ops.render.render(write_still=True)
+
+            # Iterate through all PNG files in the directory and rename them if necessary
+            for filename in os.listdir(output_directory):
+                if filename.endswith(".png"):
+                    match = re.search(r'-(?P<frame_number>\d{4})\.png$', filename)
+                    if match:
+                        new_filename = filename.replace(match.group(0), "") + ".png"
+                        os.rename(os.path.join(output_directory, filename), os.path.join(output_directory, new_filename))
+
+            # Delete CamP_sub##.png
+            CamP_sub_file = os.path.join(output_directory, camera_name + ".png")
+            if os.path.exists(CamP_sub_file):
+                os.remove(CamP_sub_file)
+
+        # Jump back to the original frame and restore the original settings
         bpy.context.scene.frame_set(current_frame)
         bpy.context.scene.render.image_settings.file_format = current_file_format
         bpy.context.scene.render.use_overwrite = current_use_overwrite
         bpy.context.scene.use_nodes = current_use_nodes
+        bpy.context.scene.camera = original_camera
+        bpy.context.scene.render.filepath = original_render_filepath
+        bpy.context.scene.frame_start = original_frame_start
+        bpy.context.scene.frame_end = original_frame_end
+
         # Show a pop-up message
-        selected_frame_formatted = "%02d" % abs(selected_frame)
         camera_name = bpy.context.scene.camera.name
-        self.report({'INFO'}, f'CamP_sub{selected_frame_formatted} rendered successfully')
+        self.report({'INFO'}, f'{camera_name} rendered successfully')
         return {'FINISHED'}
 
-
 # Register the operator
-bpy.utils.register_class(RenderSelectedFrameOperator)
+bpy.utils.register_class(RenderSelectedCamPOperator)
 
 # Invoke the operator
-bpy.ops.scene.render_selected_frame('INVOKE_DEFAULT')
+bpy.ops.scene.render_selected_camp('INVOKE_DEFAULT')
