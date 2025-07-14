@@ -66,6 +66,14 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
             self.report({'ERROR'}, 'Node "Output_path_MP" not found or missing base_path attribute')
             return {'CANCELLED'}
 
+        # Save the original base_path
+        original_base_path = output_path_node.base_path
+
+        # append camera name to base_path
+        if not output_path_node.base_path.endswith('/'):
+            output_path_node.base_path += '/'
+        output_path_node.base_path += camera_name
+
         """
         Note that // means a network path in Windows,
         so need to remove the slashes in the string that you inputed in Output_path_MP,
@@ -73,8 +81,8 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
         otherwise bpy will report that the network path cannot be found.
         This is really annoying.
         """
-
-        relative_output_directory = output_path_node.base_path.replace("{camera}", bpy.context.scene.camera.name).lstrip('/') + '/'
+        
+        relative_output_directory = output_path_node.base_path.lstrip('/') + '/'
         output_directory = os.path.join(blend_file_dir, relative_output_directory)
 
         # Create the output directory if it doesn't exist
@@ -137,7 +145,7 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
                 if filename.endswith(".png"):
                     match = re.search(r'-(?P<frame_number>\d{4})\.png$', filename)
                     if match:
-                        new_filename = filename.replace(match.group(0), "") + ".png"
+                        new_filename = filename.replace(match.group(0), "").replace("{camera}", camera_name) + ".png"
                         os.rename(os.path.join(output_directory, filename), os.path.join(output_directory, new_filename))
 
             # Delete CamP_sub##.png
@@ -154,6 +162,9 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
         bpy.context.scene.render.filepath = original_render_filepath
         bpy.context.scene.frame_start = original_frame_start
         bpy.context.scene.frame_end = original_frame_end
+
+        # Restore the original base_path
+        output_path_node.base_path = original_base_path
 
         # Show a pop-up message
         camera_name = bpy.context.scene.camera.name
