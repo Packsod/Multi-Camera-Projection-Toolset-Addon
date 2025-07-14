@@ -70,7 +70,7 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
         original_base_path = output_path_node.base_path
 
         # append camera name to base_path
-        if not output_path_node.base_path.endswith('/'):
+        if not output_path_node.base_path.endswith(('/', '\\')):
             output_path_node.base_path += '/'
         output_path_node.base_path += camera_name
 
