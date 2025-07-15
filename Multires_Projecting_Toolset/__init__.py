@@ -241,12 +241,10 @@ categories["mp_shader"]["row_data"] = [
 
 
 categories["mp_misc"]["operators"] = [
-    create_operator_1("misc_origin_to_bottom", "origin to bottom", "PIVOT_CURSOR"),
-    create_operator_1("misc_align_x", "align to x", "PIVOT_CURSOR"),
     create_operator_1("misc_empty_to_image_plane", "ref img to mesh", "IMAGE_RGB"),
     create_operator_1("misc_render_test_anim", "render test anim", "RENDER_ANIMATION"),
-
-
+    create_operator_1("misc_render_frames", "render frames", "RENDER_ANIMATION"),
+    
     create_operator_1("misc_UV_sets_all", "UV set all (switch)", "UV"),
     create_operator_1("misc_UV_xatlas", "UV unwrap xatlas", "SCRIPTPLUGINS"),
     create_operator_1("misc_invisible_vertex_checker", "check invisible vertex", "NORMALS_FACE"),
@@ -255,8 +253,6 @@ categories["mp_misc"]["operators"] = [
 ]
 
 categories["mp_misc"]["row_data"] = [
-    ("obj sort", 2),
-    ("", 0),
     ("", 1),
     ("", 1),
     ("", 1),
