@@ -153,7 +153,7 @@ class RESTORE_OT_CamPParameters(Operator):
 
     def update_base_path(self):
         base_path = bpy.data.scenes[bpy.context.scene.name].node_tree.nodes["Output_path_MP"].base_path
-        new_base_path = f"//multires_projecting/{self.title}/{{camera}}"
+        new_base_path = f"//multires_projecting/{self.title}/"
         base_path = new_base_path
         bpy.data.scenes[bpy.context.scene.name].node_tree.nodes["Output_path_MP"].base_path = new_base_path
 
