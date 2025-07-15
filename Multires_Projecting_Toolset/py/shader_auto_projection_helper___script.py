@@ -36,7 +36,7 @@ def manage_material_and_node_group():
 
         try:
             base_path = bpy.data.scenes[bpy.context.scene.name].node_tree.nodes["Output_path_MP"].base_path
-            base_path = base_path.format(camera=f"CamP_sub{index:02d}")
+            base_path = os.path.join(base_path, f"CamP_sub{index:02d}")
             psd_path = os.path.join(os.path.dirname(bpy.data.filepath), base_path, psd_image)
             webm_path = os.path.join(os.path.dirname(bpy.data.filepath), base_path, webm_image)
         except Exception:
