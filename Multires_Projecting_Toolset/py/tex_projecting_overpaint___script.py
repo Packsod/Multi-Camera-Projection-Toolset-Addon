@@ -19,7 +19,7 @@ class OverpaintCameraProjection(bpy.types.Operator):
             psd_image = f"CamP_sub{i:02d}_render.psd"
             if "Output_path_MP" in bpy.context.scene.node_tree.nodes:
                 base_path = bpy.data.scenes[bpy.context.scene.name].node_tree.nodes["Output_path_MP"].base_path.replace("//", "")
-                base_path = base_path.format(camera=f"CamP_sub{i:02d}")
+                base_path = os.path.join(base_path, f"CamP_sub{i:02d}")
                 psd_path = os.path.relpath(os.path.join(os.path.dirname(bpy.data.filepath), base_path, psd_image), bpy.path.abspath("//"))
                 psd_path = "//" + psd_path.replace("\\", "/")
             else:
