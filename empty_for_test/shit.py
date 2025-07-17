@@ -246,6 +246,7 @@ categories["mp_misc"]["operators"] = [
     create_operator_1("misc_render_frames", "render frames", "RENDER_ANIMATION"),
     
     create_operator_1("misc_UV_sets_all", "UV set all (switch)", "UV"),
+    create_operator_1("misc_UV_xatlas", "UV unwrap xatlas", "SCRIPTPLUGINS"),
     create_operator_1("misc_invisible_vertex_checker", "check invisible vertex", "NORMALS_FACE"),
     
     create_operator_1("misc_set_scene", "scene set", "SCENE_DATA"),
