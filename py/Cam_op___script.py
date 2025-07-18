@@ -187,87 +187,6 @@ class Cam_Switch:
                     area.spaces[0].region_3d.view_perspective = 'CAMERA'
 
 
-
-    @staticmethod
-    def backup_CamP_parameters():
-        # Create or overwrite the text block
-        if "CamP_backups" in bpy.data.texts:
-            backup_text = bpy.data.texts["CamP_backups"]
-            backup_text.clear()
-        else:
-            backup_text = bpy.data.texts.new("CamP_backups")
-        # Write the parameters to the text block
-        CamP_objects = [f"CamP_sub{str(i).zfill(2)}" for i in range(1, 25)]
-        existing_CamP = [cam for cam in bpy.data.objects if cam.name in CamP_objects]
-        for CamP in existing_CamP:
-            backup_text.write(f"{CamP.name}\n")
-            backup_text.write(f"Location: {CamP.location.x}, {CamP.location.y}, {CamP.location.z}\n")
-            backup_text.write(f"Rotation: {CamP.rotation_euler.x}, {CamP.rotation_euler.y}, {CamP.rotation_euler.z}\n")
-            backup_text.write(f"Lens: {CamP.data.lens}\n")
-            backup_text.write(f"Shift X: {CamP.data.shift_x}\n")
-            backup_text.write(f"Shift Y: {CamP.data.shift_y}\n")
-            backup_text.write(f"Clip Start: {CamP.data.clip_start}\n")
-            backup_text.write(f"Clip End: {CamP.data.clip_end}\n")
-            backup_text.write(f"Sensor Width: {CamP.data.sensor_width}\n")
-            backup_text.write("------------------\n")
-
-
-    @staticmethod
-    def apply_CamP_parameters():
-        if 'CamP_backups' in bpy.data.texts:
-            backup_text = bpy.data.texts['CamP_backups']
-            lines = backup_text.as_string().split('\n')
-            i = 0
-            while i < len(lines):
-                if lines[i].startswith('CamP_sub'):
-                    CamP_name = lines[i]
-                    CamP = bpy.data.objects.get(CamP_name)
-                    if CamP is not None:
-                        # Read the location
-                        location_line = lines[i + 1]
-                        location_parts = location_line.split(': ')[1].split(',')
-                        location = [float(x) for x in location_parts]
-                        CamP.location = location
-                        # Read the rotation
-                        rotation_line = lines[i + 2]
-                        rotation_parts = rotation_line.split(': ')[1].split(',')
-                        rotation = [float(x) for x in rotation_parts]
-                        CamP.rotation_euler = rotation
-                        # Read the lens parameters
-                        lens_line = lines[i + 3]
-                        lens = float(lens_line.split(': ')[1])
-                        CamP.data.lens = lens
-                        # Read the shift parameters
-                        shift_x_line = lines[i + 4]
-                        shift_x = float(shift_x_line.split(': ')[1])
-                        CamP.data.shift_x = shift_x
-                        shift_y_line = lines[i + 5]
-                        shift_y = float(shift_y_line.split(': ')[1])
-                        CamP.data.shift_y = shift_y
-                        # Read the clip parameters
-                        clip_start_line = lines[i + 6]
-                        clip_start = float(clip_start_line.split(': ')[1])
-                        CamP.data.clip_start = clip_start
-                        clip_end_line = lines[i + 7]
-                        clip_end = float(clip_end_line.split(': ')[1])
-                        CamP.data.clip_end = clip_end
-                        # Read the sensor width
-                        sensor_width_line = lines[i + 8]
-                        sensor_width = float(sensor_width_line.split(': ')[1])
-                        CamP.data.sensor_width = sensor_width
-                    i += 9
-                else:
-                    i += 1
-        else:      
-            bpy.context.window_manager.popup_menu(
-                lambda self, context: self.layout.label(text="No 'CamP_backups' text block found."),
-                title="Warning",
-                icon='INFO'
-                )
-
-
-
-
 class Cam_Mist:
     def set_distance():
         import mathutils
@@ -431,11 +350,11 @@ class Cam_Main:
         bpy.ops.object.main_cam_switch('INVOKE_DEFAULT')
 
     @staticmethod
-    def MainCam_Anim_Bake():
-        class MainCamAnimBakeOperator(bpy.types.Operator):
-            """MainCam Anim Bake"""
-            bl_idname = "object.main_cam_anim_bake"
-            bl_label = "MainCam Anim Bake"
+    def MainCam_Action_Bake():
+        class MainCamActionBakeOperator(bpy.types.Operator):
+            """MainCam Action Bake"""
+            bl_idname = "object.main_cam_action_bake"
+            bl_label = "MainCam Action Bake"
             bl_options = {'REGISTER', 'UNDO'}
 
             def get_camera_items(self, context):
@@ -512,10 +431,10 @@ class Cam_Main:
                 return context.window_manager.invoke_props_dialog(self)
 
         # Register the operator if it hasn't been registered yet
-        if MainCamAnimBakeOperator.bl_idname not in bpy.types.Operator.__subclasses__():
-            bpy.utils.register_class(MainCamAnimBakeOperator)
+        if MainCamActionBakeOperator.bl_idname not in bpy.types.Operator.__subclasses__():
+            bpy.utils.register_class(MainCamActionBakeOperator)
 
-        bpy.ops.object.main_cam_anim_bake('INVOKE_DEFAULT')
+        bpy.ops.object.main_cam_action_bake('INVOKE_DEFAULT')
 
                 
 # Placeholder class and def
