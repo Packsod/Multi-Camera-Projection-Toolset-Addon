@@ -266,26 +266,6 @@ class Cam_Main:
                 items=get_camera_items
             )
 
-            def __init__(self):
-                # Get the marker at the first frame
-                scene = bpy.context.scene
-                frame_number = 1  # First frame in the timeline
-                camera_name = None
-
-                for marker in scene.timeline_markers:
-                    if marker.frame == frame_number:
-                        camera_name = marker.camera.name
-                        break
-
-                # If no marker, use the first valid camera as default
-                if camera_name is None:
-                    camera_objects = [obj for obj in bpy.data.objects if obj.type == 'CAMERA' and not (obj.name.startswith("CamO_sub") or obj.name.startswith("CamP_sub"))]
-                    if camera_objects:
-                        camera_name = camera_objects[0].name
-
-                # Set the default value
-                self.camera_name = camera_name
-
             def record_frame_range(self, camera):
                 scene = bpy.context.scene
                 start_frame = scene.frame_start
@@ -332,7 +312,6 @@ class Cam_Main:
 
                         # skip Recording frame range for the new camera
 
-
                     # Read frame range from the new camera
                     self.read_frame_range(new_camera)
 
@@ -341,6 +320,25 @@ class Cam_Main:
                 return {'FINISHED'}
 
             def invoke(self, context, event):
+                # Get the marker at the first frame
+                scene = bpy.context.scene
+                frame_number = 1  # First frame in the timeline
+                camera_name = None
+
+                for marker in scene.timeline_markers:
+                    if marker.frame == frame_number:
+                        camera_name = marker.camera.name
+                        break
+
+                # If no marker, use the first valid camera as default
+                if camera_name is None:
+                    camera_objects = [obj for obj in bpy.data.objects if obj.type == 'CAMERA' and not (obj.name.startswith("CamO_sub") or obj.name.startswith("CamP_sub"))]
+                    if camera_objects:
+                        camera_name = camera_objects[0].name
+
+                # Set the default value
+                self.camera_name = camera_name
+
                 return context.window_manager.invoke_props_dialog(self)
 
         # Register the operator if it hasn't been registered yet
