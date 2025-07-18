@@ -246,10 +246,9 @@ categories["mp_misc"]["operators"] = [
     create_operator_1("misc_render_frames", "render frames", "RENDER_ANIMATION"),
     
     create_operator_1("misc_UV_sets_all", "UV set all (switch)", "UV"),
-    create_operator_1("misc_UV_xatlas", "UV unwrap xatlas", "SCRIPTPLUGINS"),
     create_operator_1("misc_invisible_vertex_checker", "check invisible vertex", "NORMALS_FACE"),
     
-    create_operator_1("misc_set_scene", "scene set", "SCENE_DATA"),
+    create_operator_1("misc_set_scene", "scene set at frist", "SCENE_DATA"),
 ]
 
 categories["mp_misc"]["row_data"] = [
@@ -282,7 +281,7 @@ categories["mp_cam_and_tex"]["operators"] = [
     create_operator_1("Cam_CamP_restore", "restore CamP", "FILE_TEXT"),
     
     create_operator_3("Cam_Main.MainCam_Switch", "Switch", "OUTLINER_OB_CAMERA"),
-    create_operator_3("Cam_Main.MainCam_Anim_Bake", "Anim Bake", "OUTLINER_OB_CAMERA"),
+    create_operator_3("Cam_Main.MainCam_Action_Bake", "Action Bake", "OUTLINER_OB_CAMERA"),
     
     create_operator_3("Cam_Mist.set_distance", "set mist keyframes", "KEY_HLT"),
     
