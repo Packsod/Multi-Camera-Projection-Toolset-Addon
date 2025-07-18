@@ -113,3 +113,4 @@ class ShaderAdder:
     @classmethod
     def add_Anisotropic_Style(cls):
         cls.add_node_group(".Anisotropic Style")
+
