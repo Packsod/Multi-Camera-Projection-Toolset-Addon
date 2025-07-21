@@ -248,7 +248,7 @@ categories["mp_misc"]["operators"] = [
     create_operator_4("misc.clear_custom_props", "clear custom props", "TRASH"),
     create_operator_1("misc_invisible_vertex_checker", "check invisible vertex", "NORMALS_FACE"),
 
-    create_operator_4("misc.UV_sets_all", "UV set all (switch)", "UV"),
+    create_operator_4("misc.UV_sets_all", "UV set all", "UV"),
     create_operator_1("misc_set_scene", "scene set", "SCENE_DATA"),
 ]
 
