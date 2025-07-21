@@ -48,14 +48,12 @@ def shader_add_gradient_mask():
     # Start the undo block
     bpy.ops.ed.undo_push(message="Start of script operation")
 
-    # Check for the presence of required objects and node groups
-    required_objects = ["Linear Gradient", "Spherical Gradient"]
+    # Check for the presence of required node groups
     required_node_groups = [".npr_Linear Gradient", ".npr_Spherical Gradient"]
-    missing_objects = [obj for obj in required_objects if obj not in bpy.data.objects]
     missing_node_groups = [ng for ng in required_node_groups if ng not in bpy.data.node_groups]
 
-    if missing_objects or missing_node_groups:
-        message = "Required objects and node groups are missing. Please run the scene set first."
+    if missing_node_groups:
+        message = "Required node groups are missing. Please run the scene set first."
         bpy.context.window_manager.popup_menu(lambda self, context, msg=message: self.layout.label(text=msg), title="Missing Requirements")
     else:
         class InputPrefixOperator(bpy.types.Operator):
@@ -73,14 +71,15 @@ def shader_add_gradient_mask():
                 # Record the currently active object
                 orig_active_object = bpy.context.view_layer.objects.active
 
-                # Part 1: Check if the object already exists or duplicate and rename it
+                # Part 1: Create and configure the new empty object
                 Gradient_empty_obj_name = base_name + " " + prefix
                 if Gradient_empty_obj_name in bpy.data.objects:
                     new_object = bpy.data.objects[Gradient_empty_obj_name]
                 else:
-                    orig_object = bpy.data.objects[base_name]
-                    new_object = orig_object.copy()
-                    new_object.name = Gradient_empty_obj_name
+                    new_object = bpy.data.objects.new(Gradient_empty_obj_name, None)
+                    new_object.empty_display_type = 'SINGLE_ARROW' if base_name == "Linear Gradient" else 'SPHERE'
+                    new_object.scale = (10, 10, 10)
+                    new_object.location = bpy.context.scene.cursor.location
                     # Link the new object into the current collection
                     bpy.context.collection.objects.link(new_object)
 
@@ -139,7 +138,6 @@ def shader_add_gradient_mask():
         bpy.utils.register_class(InputPrefixOperator)
         # Execute the InputPrefixOperator to show the input dialog
         bpy.ops.object.input_prefix('INVOKE_DEFAULT')
-
 
     # End the undo block
     bpy.ops.ed.undo_push(message="End of script operation")
