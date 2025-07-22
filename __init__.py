@@ -406,35 +406,41 @@ mp = type("mp_PT_panel", (MultiresProjectingPanel,), {"bl_idname": "mp_PT_panel"
 mp_shader = type("mp_SHADER_PT_panel", (MultiresProjectingPanel,), {"bl_idname": "mp_SHADER_PT_panel", "bl_label": "Multires Projecting Shader", "bl_space_type": 'NODE_EDITOR'})
 
 
+_registered_classes = []
+
 def register():
-    # Unregister first to ensure clean state
+    global _registered_classes
     try:
         unregister()
-    except:
+    except Exception:
         pass
-
+    cls = []
     for category in categories.values():
         for operator in category["operators"]:
             bpy.utils.register_class(operator)
+            cls.append(operator)
     bpy.utils.register_class(mp)
+    cls.append(mp)
     bpy.utils.register_class(mp_shader)
+    cls.append(mp_shader)
     bpy.utils.register_class(MP_NODEGROUPS_MT_Menu)
-
-    # Append the draw_mp_nodegroups_menu function to the NODE_MT_add class
+    cls.append(MP_NODEGROUPS_MT_Menu)
     if not any(draw_mp_nodegroups_menu.__name__ == f.__name__ for f in bpy.types.NODE_MT_add._dyn_ui_initialize()):
         bpy.types.NODE_MT_add.append(draw_mp_nodegroups_menu)
+    _registered_classes = cls
 
 def unregister():
-    bpy.utils.unregister_class(mp_shader)
-    bpy.utils.unregister_class(mp)
-    bpy.utils.unregister_class(MP_NODEGROUPS_MT_Menu)
-    # Remove the draw_mp_nodegroups_menu function from the NODE_MT_add class, if it's there
-    for f in bpy.types.NODE_MT_add._dyn_ui_initialize():
-        if f.__name__ == draw_mp_nodegroups_menu.__name__:
-            bpy.types.NODE_MT_add.remove(f)
-    for category in categories.values():
-        for operator in category["operators"]:
-            bpy.utils.unregister_class(operator)
+    global _registered_classes
+    if hasattr(bpy.types.NODE_MT_add, "_dyn_ui_initialize"):
+        for f in bpy.types.NODE_MT_add._dyn_ui_initialize():
+            if f.__name__ == draw_mp_nodegroups_menu.__name__:
+                bpy.types.NODE_MT_add.remove(f)
+    for c in reversed(_registered_classes):
+        try:
+            bpy.utils.unregister_class(c)
+        except Exception:
+            pass
+    _registered_classes.clear()
 
 def draw_mp_nodegroups_menu(self, context):
     self.layout.separator()
