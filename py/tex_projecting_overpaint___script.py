@@ -1,5 +1,6 @@
 import bpy
 import os
+
 os.chdir(os.path.dirname(bpy.data.filepath))
 
 class OverpaintCameraProjection(bpy.types.Operator):
@@ -10,7 +11,7 @@ class OverpaintCameraProjection(bpy.types.Operator):
     specified_camera: bpy.props.BoolProperty(name="Specify Camera Projection", default=False)
     merge_mesh: bpy.props.BoolProperty(name="Merge Mesh", default=False)
 
-    def __init__(self):
+    def setup(self, context):
         self.CamP_objects = [f"CamP_sub{str(i).zfill(2)}" for i in range(1, 25)]
         self.psd_op_paths = []
         self.available_camera_indexes = []
@@ -34,6 +35,7 @@ class OverpaintCameraProjection(bpy.types.Operator):
                     else:
                         bpy.data.images[psd_image].reload()
                     self.image_modification_times[psd_image] = modification_time
+        return True
 
     def popup_message(self, message):
         def draw(self, context):
@@ -122,6 +124,9 @@ class OverpaintCameraProjection(bpy.types.Operator):
     def execute(self, context):
         original_global_undo = bpy.context.preferences.edit.use_global_undo
         bpy.context.preferences.edit.use_global_undo = False
+
+        if not hasattr(self, 'psd_op_paths'):
+            self.setup(context)
 
         active_camera = bpy.context.scene.camera
         selected_camera_indexes = [i + 1 for i in range(24) if self.camera_indexes[i]]
@@ -227,6 +232,10 @@ class OverpaintCameraProjection(bpy.types.Operator):
         if not node_found:
             self.popup_message("The active material does not use an image containing 'overpaint' in the name or label. Please select an object with a suitable material for overpainting.")
             return {'CANCELLED'}
+
+        if not hasattr(self, 'psd_op_paths'):
+            self.setup(context)
+
         if not self.available_camera_indexes:
             self.popup_message("No PSD files found. Please make sure the PSD files exist in the specified paths.")
             return {'CANCELLED'}

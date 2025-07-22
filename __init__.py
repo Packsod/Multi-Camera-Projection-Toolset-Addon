@@ -241,21 +241,25 @@ categories["mp_shader"]["row_data"] = [
 
 
 categories["mp_misc"]["operators"] = [
-    create_operator_1("misc_empty_to_image_plane", "ref img to mesh", "IMAGE_RGB"),
     create_operator_1("misc_render_test_anim", "render test anim", "RENDER_ANIMATION"),
     create_operator_1("misc_render_frames", "render frames", "RENDER_ANIMATION"),
     
-    create_operator_1("misc_UV_sets_all", "UV set all (switch)", "UV"),
+    create_operator_1("misc_empty_to_image_plane", "ref img to mesh", "IMAGE_RGB"),
+    create_operator_4("misc.clear_custom_props", "clear custom props", "TRASH"),
     create_operator_1("misc_invisible_vertex_checker", "check invisible vertex", "NORMALS_FACE"),
-    
-    create_operator_1("misc_set_scene", "scene set at frist", "SCENE_DATA"),
+
+    create_operator_4("misc.UV_sets_all", "UV set all", "UV"),
+    create_operator_1("misc_set_scene", "scene set", "SCENE_DATA"),
 ]
 
 categories["mp_misc"]["row_data"] = [
     ("", 1),
     ("", 1),
+    ("", 0),
+    ("Object-oriented", 1),
     ("", 1),
     ("", 1),
+    ("", 0),
     ("", 1),
     ("", 1),
 ]
