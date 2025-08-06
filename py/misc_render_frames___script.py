@@ -60,12 +60,12 @@ class RenderAnimationOperator(bpy.types.Operator):
                 links.append({'from_node': link.from_node.name, 'from_socket': link.from_socket.name})
             original_file_slots.append({'path': slot.path, 'index': idx, 'links': links})
 
-        # Remove sockets that are not selected to keep (倒序安全删除)
+        # Remove sockets that are not selected to keep (safe removal in reverse order)
         file_node = output_path_node
         keep_indices = [i for i, v in enumerate(self.sockets_to_keep[:len(file_node.file_slots)]) if v]
         total = len(file_node.file_slots)
 
-        # 倒序删除未选中的slot
+        # Remove unselected slots in reverse order
         for idx in reversed(range(total)):
             if idx not in keep_indices:
                 file_node.file_slots.remove(file_node.inputs[idx])
