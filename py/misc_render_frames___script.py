@@ -4,10 +4,36 @@ import os
 class RenderAnimationOperator(bpy.types.Operator):
     bl_idname = "scene.render_animation"
     bl_label = "Render Animation"
-    bl_options = {'REGISTER'}
+    bl_options = {'REGISTER', 'UNDO'}
+
+    sockets_to_keep: bpy.props.BoolVectorProperty(
+        name="Sockets to Keep",
+        size=32,
+        default=tuple([True]*32),
+        options={'ANIMATABLE'}
+    )
+
+    def invoke(self, context, event):
+        node_tree = bpy.context.scene.node_tree
+        output_path_node = node_tree.nodes.get("Output_path_MP")
+        if not output_path_node:
+            self.report({'ERROR'}, 'Node "Output_path_MP" not found')
+            return {'CANCELLED'}
+        total_sockets = len(output_path_node.file_slots)
+        self.sockets_to_keep = [True] * total_sockets + [False] * (32 - total_sockets)
+        return context.window_manager.invoke_props_dialog(self)
+
+    def draw(self, context):
+        layout = self.layout
+        node_tree = bpy.context.scene.node_tree
+        output_path_node = node_tree.nodes.get("Output_path_MP")
+        if output_path_node:
+            for i, slot in enumerate(output_path_node.file_slots):
+                layout.prop(self, "sockets_to_keep", index=i, text=slot.path)
 
     def execute(self, context):
         import re
+
         # Save the original settings
         current_frame = bpy.context.scene.frame_current
         current_file_format = bpy.context.scene.render.image_settings.file_format
@@ -18,6 +44,32 @@ class RenderAnimationOperator(bpy.types.Operator):
         original_frame_start = bpy.context.scene.frame_start
         original_frame_end = bpy.context.scene.frame_end
 
+        # Get the Output_path_MP node and its original sockets
+        node_tree = bpy.context.scene.node_tree
+        output_path_node = node_tree.nodes.get("Output_path_MP")
+        if not output_path_node:
+            self.report({'ERROR'}, 'Node "Output_path_MP" not found')
+            return {'CANCELLED'}
+
+        # Record the original file slots and their input links
+        original_file_slots = []
+        for idx, slot in enumerate(output_path_node.file_slots):
+            input_socket = output_path_node.inputs[idx]
+            links = []
+            for link in input_socket.links:
+                links.append({'from_node': link.from_node.name, 'from_socket': link.from_socket.name})
+            original_file_slots.append({'path': slot.path, 'index': idx, 'links': links})
+
+        # Remove sockets that are not selected to keep (倒序安全删除)
+        file_node = output_path_node
+        keep_indices = [i for i, v in enumerate(self.sockets_to_keep[:len(file_node.file_slots)]) if v]
+        total = len(file_node.file_slots)
+
+        # 倒序删除未选中的slot
+        for idx in reversed(range(total)):
+            if idx not in keep_indices:
+                file_node.file_slots.remove(file_node.inputs[idx])
+
         # Set the image settings to PNG format and enable overwrite
         bpy.context.scene.render.image_settings.file_format = 'PNG'
         bpy.context.scene.render.use_overwrite = True
@@ -27,19 +79,11 @@ class RenderAnimationOperator(bpy.types.Operator):
         frame_start = bpy.context.scene.frame_start
         frame_end = bpy.context.scene.frame_end
 
-        # jump to frame 1 at first, useful for "per_camera_resolution" add-on
+        # Jump to frame 1 at first, useful for "per_camera_resolution" add-on
         bpy.context.scene.frame_set(1)
 
         # Try to get the output path from the node in the current scene's node tree
         try:
-            # Get the current scene's node tree
-            node_tree = bpy.data.scenes[bpy.context.scene.name].node_tree
-
-            # Check if the "Output_path_MP" node exists
-            output_path_node = node_tree.nodes.get("Output_path_MP")
-            if not output_path_node or not hasattr(output_path_node, "base_path"):
-                raise ValueError('Node "Output_path_MP" not found or missing base_path attribute')
-
             # Get the current base_path
             original_base_path = output_path_node.base_path
 
@@ -81,7 +125,7 @@ class RenderAnimationOperator(bpy.types.Operator):
 
             # Function to delete all PNG files in a directory (including subdirectories)
             def delete_png_files(directory):
-                for root, dirs, files in os.walk(directory, topdown=False):  # Use topdown=False to delete directories after their contents
+                for root, dirs, files in os.walk(directory, topdown=False):
                     for file in files:
                         if file.endswith('.png'):
                             file_path = os.path.join(root, file)
@@ -135,8 +179,23 @@ class RenderAnimationOperator(bpy.types.Operator):
         bpy.context.scene.frame_start = original_frame_start
         bpy.context.scene.frame_end = original_frame_end
 
-        # Restore the original base_path
+        # Restore the original base_path and sockets
         output_path_node.base_path = original_base_path
+
+        # Clear all current file slots
+        while len(output_path_node.file_slots) > 0:
+            output_path_node.file_slots.remove(output_path_node.inputs[0])
+
+        # Rebuild slots and restore input links
+        for slot_info in original_file_slots:
+            slot = output_path_node.file_slots.new(slot_info['path'])
+            input_socket = output_path_node.inputs[slot_info['index']]
+            for link_info in slot_info['links']:
+                from_node = node_tree.nodes.get(link_info['from_node'])
+                if from_node:
+                    from_socket = from_node.outputs.get(link_info['from_socket'])
+                    if from_socket and not input_socket.is_linked:
+                        node_tree.links.new(from_socket, input_socket)
 
         # Show a pop-up message
         self.report({'INFO'}, f'Animation rendered successfully to {img_path}')
