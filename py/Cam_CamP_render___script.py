@@ -93,11 +93,34 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
         # Append camera name to base_path
         output_path_node.base_path = os.path.join(output_path_node.base_path, camera_name)
 
+        """
+        Note that // means a network path in Windows,
+        so need to remove the slashes in the string that you inputed in Output_path_MP,
+        then append it with os.listdir(),
+        otherwise bpy will report that the network path cannot be found.
+        This is really annoying.
+        """
+
         relative_output_directory = output_path_node.base_path.lstrip('/') + '/'
         output_directory = os.path.join(blend_file_dir, relative_output_directory)
 
         # Create the output directory if it doesn't exist
         os.makedirs(output_directory, exist_ok=True)
+
+        # Delete existing files based on the render mode
+        def delete_files_by_extension(directory, extension):
+            try:
+                for filename in os.listdir(directory):
+                    if filename.endswith(extension):
+                        file_path = os.path.join(directory, filename)
+                        os.remove(file_path)
+            except FileNotFoundError:
+                pass
+
+        if self.render_video:
+            delete_files_by_extension(output_directory, ".mp4")
+        else:
+            delete_files_by_extension(output_directory, ".png")
 
         def remove_existing_viewer_nodes(node_tree):
             viewer_nodes = [node for node in node_tree.nodes if node.type == 'VIEWER']
