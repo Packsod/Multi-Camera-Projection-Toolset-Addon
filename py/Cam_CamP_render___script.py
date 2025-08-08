@@ -211,7 +211,7 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
             # Iterate through all PNG files in the directory and rename them if necessary
             for filename in os.listdir(output_directory):
                 if filename.endswith(".png"):
-                    match = re.search(r'(?P<frame_number>\d{4})\.png$', filename)
+                    match = re.search(r'-(?P<frame_number>\d{4})\.png$', filename)
                     if match:
                         new_filename = filename.replace(match.group(0), "").replace("{camera}", camera_name) + ".png"
                         os.rename(os.path.join(output_directory, filename), os.path.join(output_directory, new_filename))
