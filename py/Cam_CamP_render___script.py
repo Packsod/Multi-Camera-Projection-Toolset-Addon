@@ -1,5 +1,6 @@
 import bpy
 
+
 class RenderSelectedCamPOperator(bpy.types.Operator):
     bl_idname = "scene.render_selected_camp"
     bl_label = "Render Selected CamP"
@@ -9,10 +10,21 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
     render_video: bpy.props.BoolProperty(name="Render Video", description="Enable video rendering mode", default=False)
     frame_start: bpy.props.IntProperty(name="Frame Start", description="Start frame of the video", default=1, min=1)
     frame_count: bpy.props.IntProperty(name="Frame Count", description="Total number of frames to render", default=121, min=1)
+    sockets_to_keep: bpy.props.BoolVectorProperty(
+        name="Sockets to Keep",
+        size=32,
+        default=tuple([True]*32),
+        options={'ANIMATABLE'}
+    )
 
     def invoke(self, context, event):
         wm = context.window_manager
         self.frame_start = context.scene.frame_start
+        node_tree = context.scene.node_tree
+        output_path_node = node_tree.nodes.get("Output_path_MP")
+        if output_path_node:
+            total_sockets = len(output_path_node.file_slots)
+            self.sockets_to_keep = [True] * total_sockets + [False] * (32 - total_sockets)
         return wm.invoke_props_dialog(self)
 
     def draw(self, context):
@@ -22,28 +34,32 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
         if self.render_video:
             layout.prop(self, "frame_start")
             layout.prop(self, "frame_count")
+            node_tree = context.scene.node_tree
+            output_path_node = node_tree.nodes.get("Output_path_MP")
+            if output_path_node:
+                for i, slot in enumerate(output_path_node.file_slots):
+                    layout.prop(self, "sockets_to_keep", index=i, text=slot.path)
 
     def execute(self, context):
         import os
         import re
 
         # Save the current frame, image settings, use_nodes setting, and timeline frame range
-        current_frame = bpy.context.scene.frame_current
-        current_file_format = bpy.context.scene.render.image_settings.file_format
-        current_use_overwrite = bpy.context.scene.render.use_overwrite
-        current_use_nodes = bpy.context.scene.use_nodes
-        original_camera = bpy.context.scene.camera
-        original_render_filepath = bpy.context.scene.render.filepath
-        original_frame_start = bpy.context.scene.frame_start
-        original_frame_end = bpy.context.scene.frame_end
+        current_frame = context.scene.frame_current
+        current_file_format = context.scene.render.image_settings.file_format
+        current_use_overwrite = context.scene.render.use_overwrite
+        current_use_nodes = context.scene.use_nodes
+        original_camera = context.scene.camera
+        original_render_filepath = context.scene.render.filepath
+        original_frame_start = context.scene.frame_start
+        original_frame_end = context.scene.frame_end
+        original_shading_type = context.space_data.shading.type
+        original_compositor = context.space_data.shading.use_compositor
 
         # Set the image settings to PNG format and enable overwrite
-        bpy.context.scene.render.image_settings.file_format = 'PNG'
-        bpy.context.scene.render.use_overwrite = True
-        bpy.context.scene.use_nodes = True
-
-        # Calculate the selected frame
-        current_frame_new = -self.render_CamP
+        context.scene.render.image_settings.file_format = 'PNG'
+        context.scene.render.use_overwrite = True
+        context.scene.use_nodes = True
 
         # Get the name of the camera to use for rendering
         camera_name = "CamP_sub%02d" % self.render_CamP
@@ -54,11 +70,11 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
             return {'CANCELLED'}
 
         # Set the camera to use for rendering
-        bpy.context.scene.camera = bpy.data.objects[camera_name]
+        context.scene.camera = bpy.data.objects[camera_name]
 
         # Directory where the PNG files are located
         blend_file_dir = os.path.dirname(bpy.data.filepath)
-        node_tree = bpy.data.scenes[bpy.context.scene.name].node_tree
+        node_tree = context.scene.node_tree
 
         # Check if the "Output_path_MP" node exists
         output_path_node = node_tree.nodes.get("Output_path_MP")
@@ -69,22 +85,19 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
         # Save the original base_path
         original_base_path = output_path_node.base_path
 
-        # append camera name to base_path
+        # Append camera name to base_path
         output_path_node.base_path = os.path.join(output_path_node.base_path, camera_name)
 
-        """
-        Note that // means a network path in Windows,
-        so need to remove the slashes in the string that you inputed in Output_path_MP,
-        then append it with os.listdir(),
-        otherwise bpy will report that the network path cannot be found.
-        This is really annoying.
-        """
-        
         relative_output_directory = output_path_node.base_path.lstrip('/') + '/'
         output_directory = os.path.join(blend_file_dir, relative_output_directory)
 
         # Create the output directory if it doesn't exist
         os.makedirs(output_directory, exist_ok=True)
+
+        def remove_existing_viewer_nodes(node_tree):
+            viewer_nodes = [node for node in node_tree.nodes if node.type == 'VIEWER']
+            for viewer_node in viewer_nodes:
+                node_tree.nodes.remove(viewer_node)
 
         # Delete existing files based on the render mode
         def delete_files_by_extension(directory, extension):
@@ -102,38 +115,93 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
             delete_files_by_extension(output_directory, ".png")
 
         # Set the render filepath to the output directory
-        bpy.context.scene.render.filepath = os.path.join(output_directory, camera_name)
+        context.scene.render.filepath = os.path.join(output_directory, camera_name)
 
         if self.render_video:
             # Record all current camera markers and their positions
-            original_markers = [(marker.name, marker.frame, marker.camera) for marker in bpy.context.scene.timeline_markers if marker.camera]
+            original_markers = [(marker.name, marker.frame, marker.camera) for marker in context.scene.timeline_markers if marker.camera]
 
             # Remove all camera markers
-            for marker in bpy.context.scene.timeline_markers:
+            for marker in context.scene.timeline_markers:
                 if marker.camera:
-                    bpy.context.scene.timeline_markers.remove(marker)
+                    context.scene.timeline_markers.remove(marker)
+
+            # Set shading type and compositor
+            bpy.context.space_data.shading.type = 'RENDERED'
+            context.space_data.shading.use_compositor = 'ALWAYS'
 
             # Set render settings for video
-            bpy.context.scene.frame_start = self.frame_start
-            bpy.context.scene.frame_end = self.frame_start + self.frame_count - 1
+            context.scene.frame_start = self.frame_start
+            context.scene.frame_end = self.frame_start + self.frame_count - 1
 
             # Set render settings for video
-            bpy.context.scene.render.image_settings.file_format = 'FFMPEG'
-            bpy.context.scene.render.ffmpeg.format = 'MPEG4'
-            bpy.context.scene.render.resolution_percentage = 100
+            context.scene.render.image_settings.file_format = 'FFMPEG'
+            context.scene.render.ffmpeg.format = 'MPEG4'
+            context.scene.render.resolution_percentage = 100
 
-            # Render the animation
-            bpy.ops.render.opengl(animation=True, view_context=True)
+            # Remove existing Viewer Nodes
+            remove_existing_viewer_nodes(node_tree)
+
+            # Get the viewer node or create one if it doesn't exist
+            viewer_node = node_tree.nodes.get("Viewer Node")
+            if not viewer_node:
+                viewer_node = node_tree.nodes.new("CompositorNodeViewer")
+                viewer_node.name = "Viewer Node"
+
+            # Get the indices of the sockets to keep
+            keep_indices = [i for i, v in enumerate(self.sockets_to_keep[:len(output_path_node.file_slots)]) if v]
+
+            for i, index in enumerate(keep_indices):
+                # Clear previous Viewer Node connections
+                for link in viewer_node.inputs[0].links:
+                    node_tree.links.remove(link)
+                context.view_layer.update()
+
+                input_socket = output_path_node.inputs[index]
+                if input_socket.is_linked:
+                    from_socket = input_socket.links[0].from_socket
+                    # Connect the upstream node to the Viewer Node
+                    node_tree.links.new(from_socket, viewer_node.inputs[0])
+                    context.view_layer.update()
+
+                    # Set the render output file path
+                    slot_name = input_socket.name
+                    bpy.context.scene.render.filepath = os.path.join(output_directory, f"{slot_name}")
+
+                    # Render the OpenGL animation
+                    bpy.ops.render.opengl(animation=True, view_context=True)
+
+                    # Disconnect the upstream node from the Viewer Node after rendering
+                    for link in viewer_node.inputs[0].links:
+                        node_tree.links.remove(link)
+                    context.view_layer.update()
+                else:
+                    self.report({'WARNING'}, f'Slot {index+1} has no connection')
+                    continue
+
+            # Check if the Viewer Node was created by the script
+            if viewer_node.name == "Viewer Node":
+                # Remove the Viewer Node if it was created by the script
+                node_tree.nodes.remove(viewer_node)
 
             # Restore the original camera markers to their original positions
             for name, frame, camera in original_markers:
                 if camera and camera.name in bpy.data.objects:
-                    marker = bpy.context.scene.timeline_markers.new(name=name, frame=frame)
+                    marker = context.scene.timeline_markers.new(name=name, frame=frame)
                     marker.camera = bpy.data.objects[camera.name]
+
+            # Rename MP4 files
+            for filename in os.listdir(output_directory):
+                if filename.endswith(".mp4"):
+                    match = re.search(r'(?P<frame_number>\d{4})-(?P<end>\d{4})\.mp4$', filename)
+                    if match:
+                        new_filename = filename.replace(match.group(0), "").replace("{camera}", camera_name) + f"{match.group('end')}.mp4"
+                        os.rename(os.path.join(output_directory, filename), os.path.join(output_directory, new_filename))
+
 
         else:
             # Jump to the selected frame and render
-            bpy.context.scene.frame_set(current_frame_new)
+            context.scene.frame_set(self.frame_start)
 
             # Render the selected frame
             bpy.ops.render.render(write_still=True)
@@ -141,7 +209,7 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
             # Iterate through all PNG files in the directory and rename them if necessary
             for filename in os.listdir(output_directory):
                 if filename.endswith(".png"):
-                    match = re.search(r'-(?P<frame_number>\d{4})\.png$', filename)
+                    match = re.search(r'(?P<frame_number>\d{4})\.png$', filename)
                     if match:
                         new_filename = filename.replace(match.group(0), "").replace("{camera}", camera_name) + ".png"
                         os.rename(os.path.join(output_directory, filename), os.path.join(output_directory, new_filename))
@@ -152,22 +220,25 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
                 os.remove(CamP_sub_file)
 
         # Jump back to the original frame and restore the original settings
-        bpy.context.scene.frame_set(current_frame)
-        bpy.context.scene.render.image_settings.file_format = current_file_format
-        bpy.context.scene.render.use_overwrite = current_use_overwrite
-        bpy.context.scene.use_nodes = current_use_nodes
-        bpy.context.scene.camera = original_camera
-        bpy.context.scene.render.filepath = original_render_filepath
-        bpy.context.scene.frame_start = original_frame_start
-        bpy.context.scene.frame_end = original_frame_end
+        context.scene.frame_set(current_frame)
+        context.scene.render.image_settings.file_format = current_file_format
+        context.scene.render.use_overwrite = current_use_overwrite
+        context.scene.use_nodes = current_use_nodes
+        context.scene.camera = original_camera
+        context.scene.render.filepath = original_render_filepath
+        context.scene.frame_start = original_frame_start
+        context.scene.frame_end = original_frame_end
+        context.space_data.shading.type = original_shading_type
+        context.space_data.shading.use_compositor = original_compositor
 
         # Restore the original base_path
         output_path_node.base_path = original_base_path
 
         # Show a pop-up message
-        camera_name = bpy.context.scene.camera.name
+        camera_name = context.scene.camera.name
         self.report({'INFO'}, f'{camera_name} rendered successfully')
         return {'FINISHED'}
+
 
 # Register the operator
 bpy.utils.register_class(RenderSelectedCamPOperator)
