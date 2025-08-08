@@ -1,4 +1,6 @@
 import bpy
+import os
+import re
 
 
 class RenderSelectedCamPOperator(bpy.types.Operator):
@@ -61,6 +63,9 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
         context.scene.render.use_overwrite = True
         context.scene.use_nodes = True
 
+        # Calculate the selected frame
+        current_frame_new = -self.render_CamP
+
         # Get the name of the camera to use for rendering
         camera_name = "CamP_sub%02d" % self.render_CamP
 
@@ -110,24 +115,19 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
                 pass
 
         if self.render_video:
+            # Delete existing .mp4 files before rendering
             delete_files_by_extension(output_directory, ".mp4")
-        else:
-            delete_files_by_extension(output_directory, ".png")
 
-        # Set the render filepath to the output directory
-        context.scene.render.filepath = os.path.join(output_directory, camera_name)
-
-        if self.render_video:
             # Record all current camera markers and their positions
             original_markers = [(marker.name, marker.frame, marker.camera) for marker in context.scene.timeline_markers if marker.camera]
 
             # Remove all camera markers
-            for marker in context.scene.timeline_markers:
+            for marker in reversed(context.scene.timeline_markers):
                 if marker.camera:
                     context.scene.timeline_markers.remove(marker)
 
             # Set shading type and compositor
-            bpy.context.space_data.shading.type = 'RENDERED'
+            context.space_data.shading.type = 'RENDERED'
             context.space_data.shading.use_compositor = 'ALWAYS'
 
             # Set render settings for video
@@ -156,6 +156,9 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
                 for link in viewer_node.inputs[0].links:
                     node_tree.links.remove(link)
                 context.view_layer.update()
+
+                # Switch to the specified camera
+                context.scene.camera = bpy.data.objects[camera_name]
 
                 input_socket = output_path_node.inputs[index]
                 if input_socket.is_linked:
@@ -198,10 +201,9 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
                         new_filename = filename.replace(match.group(0), "").replace("{camera}", camera_name) + f"{match.group('end')}.mp4"
                         os.rename(os.path.join(output_directory, filename), os.path.join(output_directory, new_filename))
 
-
         else:
             # Jump to the selected frame and render
-            context.scene.frame_set(self.frame_start)
+            bpy.context.scene.frame_set(current_frame_new)
 
             # Render the selected frame
             bpy.ops.render.render(write_still=True)
@@ -218,6 +220,7 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
             CamP_sub_file = os.path.join(output_directory, camera_name + ".png")
             if os.path.exists(CamP_sub_file):
                 os.remove(CamP_sub_file)
+
 
         # Jump back to the original frame and restore the original settings
         context.scene.frame_set(current_frame)
