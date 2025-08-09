@@ -2,7 +2,6 @@ import bpy
 import os
 import re
 
-
 class RenderSelectedCamPOperator(bpy.types.Operator):
     bl_idname = "scene.render_selected_camp"
     bl_label = "Render Selected CamP"
@@ -46,17 +45,83 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
         import os
         import re
 
-        # Save the current frame, image settings, use_nodes setting, and timeline frame range
-        current_frame = context.scene.frame_current
-        current_file_format = context.scene.render.image_settings.file_format
-        current_use_overwrite = context.scene.render.use_overwrite
-        current_use_nodes = context.scene.use_nodes
-        original_camera = context.scene.camera
-        original_render_filepath = context.scene.render.filepath
-        original_frame_start = context.scene.frame_start
-        original_frame_end = context.scene.frame_end
-        original_shading_type = context.space_data.shading.type
-        original_compositor = context.space_data.shading.use_compositor
+        def set_settings(shading_type, show_overlays, filepath, format, percentage):
+            # Save the current frame, image settings, use_nodes setting, and timeline frame range
+            current_frame = context.scene.frame_current
+            current_file_format = context.scene.render.image_settings.file_format
+            current_use_overwrite = context.scene.render.use_overwrite
+            current_use_nodes = context.scene.use_nodes
+            current_camera = context.scene.camera
+            current_render_filepath = context.scene.render.filepath
+            current_frame_start = context.scene.frame_start
+            current_frame_end = context.scene.frame_end
+            current_compositor = context.space_data.shading.use_compositor
+            current_overlay = context.space_data.overlay.show_overlays
+            current_resolution_percentage = context.scene.render.resolution_percentage
+
+            for area in bpy.context.screen.areas:
+                if area.type == 'VIEW_3D':
+                    for space in area.spaces:
+                        if space.type == 'VIEW_3D':
+                            current_view_matrix = space.region_3d.view_matrix.copy()
+                            current_space_shading_type = space.shading.type
+                            if space.region_3d.view_perspective == 'CAMERA':
+                                camera_to_view_called = True
+                            break
+
+            return {
+                'current_frame': current_frame,
+                'current_file_format': current_file_format,
+                'current_use_overwrite': current_use_overwrite,
+                'current_use_nodes': current_use_nodes,
+                'current_camera': current_camera,
+                'current_render_filepath': current_render_filepath,
+                'current_frame_start': current_frame_start,
+                'current_frame_end': current_frame_end,
+                'current_compositor': current_compositor,
+                'current_view_matrix': current_view_matrix,
+                'current_space_shading_type': current_space_shading_type,
+                'current_overlay': current_overlay,
+                'current_resolution_percentage': current_resolution_percentage
+            }
+
+        def restore_settings(current_file_format, current_view_matrix, current_space_shading_type, original_video_path, format, percentage, current_overlay):
+            context.scene.render.image_settings.file_format = current_file_format
+            context.scene.render.resolution_percentage = percentage
+            context.scene.render.image_settings.file_format = current_file_format
+            context.space_data.overlay.show_overlays = current_overlay
+            for area in bpy.context.screen.areas:
+                if area.type == 'VIEW_3D':
+                    for space in area.spaces:
+                        if space.type == 'VIEW_3D':
+                            space.region_3d.view_matrix = current_view_matrix
+                            space.shading.type = current_space_shading_type
+                            break
+
+            # check format if is empty
+            if format:
+                context.scene.render.ffmpeg.format = format
+
+
+        # 1. save settubgs
+        settings = set_settings(
+            shading_type=context.space_data.shading.type,
+            show_overlays=context.space_data.overlay.show_overlays,
+            filepath=context.scene.render.filepath,
+            format=context.scene.render.ffmpeg.format if context.scene.render.image_settings.file_format == 'FFMPEG' else '',
+            percentage=context.scene.render.resolution_percentage
+        )
+
+        # Store camera state and frame
+        current_frame = bpy.context.scene.frame_current
+        current_camera = bpy.context.scene.camera
+        current_camera_view = None
+        for area in bpy.context.screen.areas:
+            if area.type == 'VIEW_3D':
+                for space in area.spaces:
+                    if space.type == 'VIEW_3D':
+                        current_camera_view = space.region_3d.view_perspective
+                        break
 
         # Set the image settings to PNG format and enable overwrite
         context.scene.render.image_settings.file_format = 'PNG'
@@ -152,6 +217,7 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
             # Set shading type and compositor
             context.space_data.shading.type = 'RENDERED'
             context.space_data.shading.use_compositor = 'ALWAYS'
+            context.space_data.overlay.show_overlays = False
 
             # Set render settings for video
             context.scene.frame_start = self.frame_start
@@ -170,6 +236,15 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
             if not viewer_node:
                 viewer_node = node_tree.nodes.new("CompositorNodeViewer")
                 viewer_node.name = "Viewer Node"
+
+            # Check if the current view is not in camera perspective
+            for area in bpy.context.screen.areas:
+                if area.type == 'VIEW_3D':
+                    for space in area.spaces:
+                        if space.type == 'VIEW_3D':
+                            if space.region_3d.view_perspective != 'CAMERA':
+                                space.region_3d.view_perspective = 'CAMERA'
+                                break
 
             # Get the indices of the sockets to keep
             keep_indices = [i for i, v in enumerate(self.sockets_to_keep[:len(output_path_node.file_slots)]) if v]
@@ -244,18 +319,34 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
             if os.path.exists(CamP_sub_file):
                 os.remove(CamP_sub_file)
 
-
         # Jump back to the original frame and restore the original settings
-        context.scene.frame_set(current_frame)
-        context.scene.render.image_settings.file_format = current_file_format
-        context.scene.render.use_overwrite = current_use_overwrite
-        context.scene.use_nodes = current_use_nodes
-        context.scene.camera = original_camera
-        context.scene.render.filepath = original_render_filepath
-        context.scene.frame_start = original_frame_start
-        context.scene.frame_end = original_frame_end
-        context.space_data.shading.type = original_shading_type
-        context.space_data.shading.use_compositor = original_compositor
+        context.scene.frame_set(settings['current_frame'])
+        context.scene.render.image_settings.file_format = settings['current_file_format']
+        context.scene.render.use_overwrite = settings['current_use_overwrite']
+        context.scene.use_nodes = settings['current_use_nodes']
+        context.scene.camera = settings['current_camera']
+        context.scene.render.filepath = settings['current_render_filepath']
+        context.scene.frame_start = settings['current_frame_start']
+        context.scene.frame_end = settings['current_frame_end']
+        context.space_data.shading.type = settings['current_space_shading_type']
+        context.space_data.shading.use_compositor = settings['current_compositor']
+
+        # Restore settings and camera state
+        restore_settings(
+            settings['current_file_format'],
+            settings['current_view_matrix'],
+            settings['current_space_shading_type'],
+            None, '',
+            settings['current_resolution_percentage'], settings['current_overlay']
+        )
+        bpy.context.scene.frame_current = current_frame
+        bpy.context.scene.camera = current_camera
+        for area in bpy.context.screen.areas:
+            if area.type == 'VIEW_3D':
+                for space in area.spaces:
+                    if space.type == 'VIEW_3D':
+                        space.region_3d.view_perspective = current_camera_view
+                        break
 
         # Restore the original base_path
         output_path_node.base_path = original_base_path
@@ -264,7 +355,6 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
         camera_name = context.scene.camera.name
         self.report({'INFO'}, f'{camera_name} rendered successfully')
         return {'FINISHED'}
-
 
 # Register the operator
 bpy.utils.register_class(RenderSelectedCamPOperator)
