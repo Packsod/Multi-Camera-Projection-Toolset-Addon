@@ -41,323 +41,195 @@ class RenderSelectedCamPOperator(bpy.types.Operator):
                 for i, slot in enumerate(output_path_node.file_slots):
                     layout.prop(self, "sockets_to_keep", index=i, text=slot.path)
 
-    def execute(self, context):
-        import os
-        import re
+    # Helper function: Save current settings
+    def save_settings(self, context):
+        current_frame = context.scene.frame_current
+        current_file_format = context.scene.render.image_settings.file_format
+        current_use_overwrite = context.scene.render.use_overwrite
+        current_use_nodes = context.scene.use_nodes
+        current_camera = context.scene.camera
+        current_render_filepath = context.scene.render.filepath
+        current_frame_start = context.scene.frame_start
+        current_frame_end = context.scene.frame_end
+        current_compositor = context.space_data.shading.use_compositor
+        current_overlay = context.space_data.overlay.show_overlays
+        current_resolution_percentage = context.scene.render.resolution_percentage
 
-        def set_settings(shading_type, show_overlays, filepath, format, percentage):
-            # Save the current frame, image settings, use_nodes setting, and timeline frame range
-            current_frame = context.scene.frame_current
-            current_file_format = context.scene.render.image_settings.file_format
-            current_use_overwrite = context.scene.render.use_overwrite
-            current_use_nodes = context.scene.use_nodes
-            current_camera = context.scene.camera
-            current_render_filepath = context.scene.render.filepath
-            current_frame_start = context.scene.frame_start
-            current_frame_end = context.scene.frame_end
-            current_compositor = context.space_data.shading.use_compositor
-            current_overlay = context.space_data.overlay.show_overlays
-            current_resolution_percentage = context.scene.render.resolution_percentage
-
-            for area in bpy.context.screen.areas:
-                if area.type == 'VIEW_3D':
-                    for space in area.spaces:
-                        if space.type == 'VIEW_3D':
-                            current_view_matrix = space.region_3d.view_matrix.copy()
-                            current_space_shading_type = space.shading.type
-                            if space.region_3d.view_perspective == 'CAMERA':
-                                camera_to_view_called = True
-                            break
-
-            return {
-                'current_frame': current_frame,
-                'current_file_format': current_file_format,
-                'current_use_overwrite': current_use_overwrite,
-                'current_use_nodes': current_use_nodes,
-                'current_camera': current_camera,
-                'current_render_filepath': current_render_filepath,
-                'current_frame_start': current_frame_start,
-                'current_frame_end': current_frame_end,
-                'current_compositor': current_compositor,
-                'current_view_matrix': current_view_matrix,
-                'current_space_shading_type': current_space_shading_type,
-                'current_overlay': current_overlay,
-                'current_resolution_percentage': current_resolution_percentage
-            }
-
-        def restore_settings(current_file_format, current_view_matrix, current_space_shading_type, original_video_path, format, percentage, current_overlay):
-            context.scene.render.image_settings.file_format = current_file_format
-            context.scene.render.resolution_percentage = percentage
-            context.scene.render.image_settings.file_format = current_file_format
-            context.space_data.overlay.show_overlays = current_overlay
-            for area in bpy.context.screen.areas:
-                if area.type == 'VIEW_3D':
-                    for space in area.spaces:
-                        if space.type == 'VIEW_3D':
-                            space.region_3d.view_matrix = current_view_matrix
-                            space.shading.type = current_space_shading_type
-                            break
-
-            # check format if is empty
-            if format:
-                context.scene.render.ffmpeg.format = format
-
-
-        # 1. save settubgs
-        settings = set_settings(
-            shading_type=context.space_data.shading.type,
-            show_overlays=context.space_data.overlay.show_overlays,
-            filepath=context.scene.render.filepath,
-            format=context.scene.render.ffmpeg.format if context.scene.render.image_settings.file_format == 'FFMPEG' else '',
-            percentage=context.scene.render.resolution_percentage
-        )
-
-        # Store camera state and frame
-        current_frame = bpy.context.scene.frame_current
-        current_camera = bpy.context.scene.camera
-        current_camera_view = None
+        region_data = []
         for area in bpy.context.screen.areas:
             if area.type == 'VIEW_3D':
                 for space in area.spaces:
                     if space.type == 'VIEW_3D':
-                        current_camera_view = space.region_3d.view_perspective
-                        break
+                        region_data.append({
+                            'view_matrix': space.region_3d.view_matrix.copy(),
+                            'shading_type': space.shading.type,
+                            'view_perspective': space.region_3d.view_perspective
+                        })
 
-        # Set the image settings to PNG format and enable overwrite
-        context.scene.render.image_settings.file_format = 'PNG'
-        context.scene.render.use_overwrite = True
-        context.scene.use_nodes = True
+        return {
+            'current_frame': current_frame,
+            'current_file_format': current_file_format,
+            'current_use_overwrite': current_use_overwrite,
+            'current_use_nodes': current_use_nodes,
+            'current_camera': current_camera,
+            'current_render_filepath': current_render_filepath,
+            'current_frame_start': current_frame_start,
+            'current_frame_end': current_frame_end,
+            'current_compositor': current_compositor,
+            'current_overlay': current_overlay,
+            'current_resolution_percentage': current_resolution_percentage,
+            'region_data': region_data
+        }
 
-        # Calculate the selected frame
-        current_frame_new = -self.render_CamP
+    # Helper function: Restore settings
+    def restore_settings(self, context, settings):
+        context.scene.render.image_settings.file_format = settings['current_file_format']
+        context.scene.render.resolution_percentage = settings['current_resolution_percentage']
+        context.space_data.overlay.show_overlays = settings['current_overlay']
+        for i, area in enumerate(bpy.context.screen.areas):
+            if area.type == 'VIEW_3D':
+                for j, space in enumerate(area.spaces):
+                    if space.type == 'VIEW_3D':
+                        rd = settings['region_data'][min(i, len(settings['region_data'])-1)]  # Prevent mismatched count
+                        space.region_3d.view_matrix = rd['view_matrix']
+                        space.shading.type = rd['shading_type']
+                        space.region_3d.view_perspective = rd['view_perspective']
+        context.scene.frame_set(settings['current_frame'])
+        context.scene.camera = settings['current_camera']
 
-        # Get the name of the camera to use for rendering
-        camera_name = "CamP_sub%02d" % self.render_CamP
+    # Helper function: Delete files by extension
+    def delete_files_by_extension(self, directory, extension):
+        import os
+        try:
+            for filename in os.listdir(directory):
+                if filename.endswith(extension):
+                    file_path = os.path.join(directory, filename)
+                    os.remove(file_path)
+        except FileNotFoundError:
+            pass
 
-        # Check if the camera exists
+    # Helper function: Remove all Viewer nodes
+    def remove_existing_viewer_nodes(self, node_tree):
+        viewer_nodes = [node for node in node_tree.nodes if node.type == 'VIEWER']
+        for viewer_node in viewer_nodes:
+            node_tree.nodes.remove(viewer_node)
+
+    # Helper function: Rename MP4 files
+    def rename_mp4_files(self, output_directory, camera_name):
+        import os
+        import re
+        for filename in os.listdir(output_directory):
+            if filename.endswith(".mp4"):
+                match = re.search(r'(?P<frame_number>\d{4})-(?P<end>\d{4})\.mp4$', filename)
+                if match:
+                    new_filename = filename.replace(match.group(0), "").replace("{camera}", camera_name) + f"{match.group('end')}.mp4"
+                    os.rename(os.path.join(output_directory, filename), os.path.join(output_directory, new_filename))
+
+    # Helper function: Rename PNG files
+    def rename_png_files(self, output_directory, camera_name):
+        import os
+        import re
+        for filename in os.listdir(output_directory):
+            if filename.endswith(".png"):
+                match = re.search(r'-(?P<frame_number>\d{4})\.png$', filename)
+                if match:
+                    new_filename = filename.replace(match.group(0), "").replace("{camera}", camera_name) + ".png"
+                    os.rename(os.path.join(output_directory, filename), os.path.join(output_directory, new_filename))
+
+    # Main execution logic
+    def execute(self, context):
+        import os
+        import re
+        settings = self.save_settings(context)
+        current_camera = bpy.context.scene.camera
+        camera_name = f"CamP_sub{self.render_CamP:02d}"
+
         if camera_name not in bpy.data.objects:
             self.report({'ERROR'}, f'Camera {camera_name} does not exist')
             return {'CANCELLED'}
 
-        # Set the camera to use for rendering
-        context.scene.camera = bpy.data.objects[camera_name]
-
-        # Directory where the PNG files are located
-        blend_file_dir = os.path.dirname(bpy.data.filepath)
         node_tree = context.scene.node_tree
-
-        # Check if the "Output_path_MP" node exists
         output_path_node = node_tree.nodes.get("Output_path_MP")
         if not output_path_node or not hasattr(output_path_node, "base_path"):
             self.report({'ERROR'}, 'Node "Output_path_MP" not found or missing base_path attribute')
             return {'CANCELLED'}
 
-        # Save the original base_path
         original_base_path = output_path_node.base_path
-
-        # Append camera name to base_path
         output_path_node.base_path = os.path.join(output_path_node.base_path, camera_name)
-
-        """
-        Note that // means a network path in Windows,
-        so need to remove the slashes in the string that you inputed in Output_path_MP,
-        then append it with os.listdir(),
-        otherwise bpy will report that the network path cannot be found.
-        This is really annoying.
-        """
-
         relative_output_directory = output_path_node.base_path.lstrip('/') + '/'
-        output_directory = os.path.join(blend_file_dir, relative_output_directory)
-
-        # Create the output directory if it doesn't exist
+        output_directory = os.path.join(os.path.dirname(bpy.data.filepath), relative_output_directory)
         os.makedirs(output_directory, exist_ok=True)
 
-        # Delete existing files based on the render mode
-        def delete_files_by_extension(directory, extension):
-            try:
-                for filename in os.listdir(directory):
-                    if filename.endswith(extension):
-                        file_path = os.path.join(directory, filename)
-                        os.remove(file_path)
-            except FileNotFoundError:
-                pass
-
         if self.render_video:
-            delete_files_by_extension(output_directory, ".mp4")
+            self.delete_files_by_extension(output_directory, ".mp4")
         else:
-            delete_files_by_extension(output_directory, ".png")
+            self.delete_files_by_extension(output_directory, ".png")
 
-        def remove_existing_viewer_nodes(node_tree):
-            viewer_nodes = [node for node in node_tree.nodes if node.type == 'VIEWER']
-            for viewer_node in viewer_nodes:
-                node_tree.nodes.remove(viewer_node)
-
-        # Delete existing files based on the render mode
-        def delete_files_by_extension(directory, extension):
-            try:
-                for filename in os.listdir(directory):
-                    if filename.endswith(extension):
-                        file_path = os.path.join(directory, filename)
-                        os.remove(file_path)
-            except FileNotFoundError:
-                pass
+        bpy.context.scene.render.image_settings.file_format = 'PNG'
+        bpy.context.scene.render.use_overwrite = True
+        bpy.context.scene.use_nodes = True
+        bpy.context.scene.camera = bpy.data.objects[camera_name]
 
         if self.render_video:
-            # Delete existing .mp4 files before rendering
-            delete_files_by_extension(output_directory, ".mp4")
-
-            # Record all current camera markers and their positions
             original_markers = [(marker.name, marker.frame, marker.camera) for marker in context.scene.timeline_markers if marker.camera]
-
-            # Remove all camera markers
             for marker in reversed(context.scene.timeline_markers):
                 if marker.camera:
                     context.scene.timeline_markers.remove(marker)
 
-            # Set shading type and compositor
-            context.space_data.shading.type = 'RENDERED'
-            context.space_data.shading.use_compositor = 'ALWAYS'
-            context.space_data.overlay.show_overlays = False
-
-            # Set render settings for video
-            context.scene.frame_start = self.frame_start
-            context.scene.frame_end = self.frame_start + self.frame_count - 1
-
-            # Set render settings for video
-            context.scene.render.image_settings.file_format = 'FFMPEG'
-            context.scene.render.ffmpeg.format = 'MPEG4'
-            context.scene.render.resolution_percentage = 100
-
-            # Remove existing Viewer Nodes
-            remove_existing_viewer_nodes(node_tree)
-
-            # Get the viewer node or create one if it doesn't exist
-            viewer_node = node_tree.nodes.get("Viewer Node")
-            if not viewer_node:
-                viewer_node = node_tree.nodes.new("CompositorNodeViewer")
-                viewer_node.name = "Viewer Node"
-
-            # Check if the current view is not in camera perspective
+            # Force switch to camera view
             for area in bpy.context.screen.areas:
                 if area.type == 'VIEW_3D':
                     for space in area.spaces:
                         if space.type == 'VIEW_3D':
                             if space.region_3d.view_perspective != 'CAMERA':
                                 space.region_3d.view_perspective = 'CAMERA'
-                                break
 
-            # Get the indices of the sockets to keep
+            context.space_data.shading.type = 'RENDERED'
+            context.space_data.shading.use_compositor = 'ALWAYS'
+            context.space_data.overlay.show_overlays = False
+
+            context.scene.frame_start = self.frame_start
+            context.scene.frame_end = self.frame_start + self.frame_count - 1
+            context.scene.render.image_settings.file_format = 'FFMPEG'
+            context.scene.render.ffmpeg.format = 'MPEG4'
+            context.scene.render.resolution_percentage = 100
+
+            self.remove_existing_viewer_nodes(node_tree)
+            viewer_node = node_tree.nodes.new("CompositorNodeViewer")
+
             keep_indices = [i for i, v in enumerate(self.sockets_to_keep[:len(output_path_node.file_slots)]) if v]
 
-            for i, index in enumerate(keep_indices):
-                # Clear previous Viewer Node connections
-                for link in viewer_node.inputs[0].links:
-                    node_tree.links.remove(link)
-                context.view_layer.update()
-
-                # Switch to the specified camera
-                context.scene.camera = bpy.data.objects[camera_name]
-
-                input_socket = output_path_node.inputs[index]
+            for i in keep_indices:
+                input_socket = output_path_node.inputs[i]
                 if input_socket.is_linked:
                     from_socket = input_socket.links[0].from_socket
-                    # Connect the upstream node to the Viewer Node
                     node_tree.links.new(from_socket, viewer_node.inputs[0])
-                    context.view_layer.update()
-
-                    # Set the render output file path
-                    slot_name = input_socket.name
-                    bpy.context.scene.render.filepath = os.path.join(output_directory, f"{slot_name}")
-
-                    # Render the OpenGL animation
+                    bpy.context.scene.render.filepath = os.path.join(output_directory, f"{input_socket.name}")
                     bpy.ops.render.opengl(animation=True, view_context=True)
-
-                    # Disconnect the upstream node from the Viewer Node after rendering
-                    for link in viewer_node.inputs[0].links:
-                        node_tree.links.remove(link)
-                    context.view_layer.update()
+                    node_tree.links.remove(viewer_node.inputs[0].links[0])
                 else:
-                    self.report({'WARNING'}, f'Slot {index+1} has no connection')
-                    continue
+                    self.report({'WARNING'}, f'Slot {i+1} has no connection')
 
-            # Check if the Viewer Node was created by the script
-            if viewer_node.name == "Viewer Node":
-                # Remove the Viewer Node if it was created by the script
-                node_tree.nodes.remove(viewer_node)
+            node_tree.nodes.remove(viewer_node)
+            self.rename_mp4_files(output_directory, camera_name)
 
-            # Restore the original camera markers to their original positions
             for name, frame, camera in original_markers:
                 if camera and camera.name in bpy.data.objects:
                     marker = context.scene.timeline_markers.new(name=name, frame=frame)
                     marker.camera = bpy.data.objects[camera.name]
 
-            # Rename MP4 files
-            for filename in os.listdir(output_directory):
-                if filename.endswith(".mp4"):
-                    match = re.search(r'(?P<frame_number>\d{4})-(?P<end>\d{4})\.mp4$', filename)
-                    if match:
-                        new_filename = filename.replace(match.group(0), "").replace("{camera}", camera_name) + f"{match.group('end')}.mp4"
-                        os.rename(os.path.join(output_directory, filename), os.path.join(output_directory, new_filename))
-
         else:
-            # Jump to the selected frame and render
-            bpy.context.scene.frame_set(current_frame_new)
-
-            # Render the selected frame
+            bpy.context.scene.frame_set(-self.render_CamP)
             bpy.ops.render.render(write_still=True)
+            self.rename_png_files(output_directory, camera_name)
 
-            # Iterate through all PNG files in the directory and rename them if necessary
-            for filename in os.listdir(output_directory):
-                if filename.endswith(".png"):
-                    match = re.search(r'-(?P<frame_number>\d{4})\.png$', filename)
-                    if match:
-                        new_filename = filename.replace(match.group(0), "").replace("{camera}", camera_name) + ".png"
-                        os.rename(os.path.join(output_directory, filename), os.path.join(output_directory, new_filename))
-
-            # Delete CamP_sub##.png
-            CamP_sub_file = os.path.join(output_directory, camera_name + ".png")
-            if os.path.exists(CamP_sub_file):
-                os.remove(CamP_sub_file)
-
-        # Jump back to the original frame and restore the original settings
-        context.scene.frame_set(settings['current_frame'])
-        context.scene.render.image_settings.file_format = settings['current_file_format']
-        context.scene.render.use_overwrite = settings['current_use_overwrite']
-        context.scene.use_nodes = settings['current_use_nodes']
-        context.scene.camera = settings['current_camera']
-        context.scene.render.filepath = settings['current_render_filepath']
-        context.scene.frame_start = settings['current_frame_start']
-        context.scene.frame_end = settings['current_frame_end']
-        context.space_data.shading.type = settings['current_space_shading_type']
-        context.space_data.shading.use_compositor = settings['current_compositor']
-
-        # Restore settings and camera state
-        restore_settings(
-            settings['current_file_format'],
-            settings['current_view_matrix'],
-            settings['current_space_shading_type'],
-            None, '',
-            settings['current_resolution_percentage'], settings['current_overlay']
-        )
-        bpy.context.scene.frame_current = current_frame
-        bpy.context.scene.camera = current_camera
-        for area in bpy.context.screen.areas:
-            if area.type == 'VIEW_3D':
-                for space in area.spaces:
-                    if space.type == 'VIEW_3D':
-                        space.region_3d.view_perspective = current_camera_view
-                        break
-
-        # Restore the original base_path
+        self.restore_settings(context, settings)
         output_path_node.base_path = original_base_path
-
-        # Show a pop-up message
-        camera_name = context.scene.camera.name
         self.report({'INFO'}, f'{camera_name} rendered successfully')
         return {'FINISHED'}
 
-# Register the operator
+# Register operator
 bpy.utils.register_class(RenderSelectedCamPOperator)
 
-# Invoke the operator
+# Call operator
 bpy.ops.scene.render_selected_camp('INVOKE_DEFAULT')
