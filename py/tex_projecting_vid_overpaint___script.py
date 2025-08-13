@@ -53,19 +53,19 @@ class OverpaintCameraBatchProjection(bpy.types.Operator):
                 bpy.data.images.load(image_path, check_existing=True)
                 bpy.context.scene.camera = bpy.context.scene.camera
                 bpy.ops.paint.texture_paint_toggle()
-                bpy.context.scene.tool_settings.image_paint.seam_bleed = 3
+                bpy.context.scene.tool_settings.image_paint.seam_bleed = 5
                 bpy.context.scene.tool_settings.image_paint.use_occlude = True
                 bpy.context.scene.tool_settings.image_paint.use_backface_culling = True
                 if merged_obj:
                     bpy.context.view_layer.objects.active = merged_obj
+                else:
+                    bpy.context.view_layer.objects.active = active_obj
                 bpy.ops.paint.project_image(image=image_name)
                 bpy.ops.paint.texture_paint_toggle()  # Exit texture paint mode
 
         bpy.context.scene.frame_set(original_frame)
         if merged_obj:
             bpy.data.objects.remove(merged_obj, do_unlink=True)
-        if merged_obj is None:
-            bpy.data.objects.remove(active_obj_copy, do_unlink=True)
         return {'FINISHED'}
 
     def draw(self, context):
