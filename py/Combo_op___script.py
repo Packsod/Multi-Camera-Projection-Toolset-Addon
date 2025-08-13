@@ -253,16 +253,34 @@ class vcol_mix:
                 else:
                     # If 'cel_mid' attribute does not exist, create 'cel_lit' attribute with default color value
                     colname = 'cel_lit'
-                    set_col = (0.5, 0.5, 0.5, 0.0)
-                    vcol_mix.process_color_attribute(colname, set_col)
+                    ca = o.data.color_attributes.new(name=colname, domain='CORNER', type='BYTE_COLOR')
+                    default_color = [128, 128, 128, 128]
+                    num_loops = len(o.data.loops)
+                    for i in range(num_loops):
+                        ca.data[i].color = default_color
 
             # Set 'cel_lit' attribute as active
             o.data.color_attributes.active_color = o.data.color_attributes['cel_lit']
 
     def cel_midtone():
         colname = 'cel_mid'
-        set_col = (0.5, 0.5, 0.5, 0.0)
-        vcol_mix.process_color_attribute(colname, set_col)
+        default_color = [128, 128, 128, 128]  # Adjust the default color as needed
+
+        selected_meshes = [o for o in bpy.context.selected_objects if o.type == 'MESH']
+
+        for o in selected_meshes:
+            bpy.context.view_layer.objects.active = o
+
+            if not o.data.color_attributes.get('cel_mid'):
+                # If 'cel_mid' attribute does not exist, create 'cel_mid' attribute with default color value
+                ca = o.data.color_attributes.new(name=colname, domain='CORNER', type='BYTE_COLOR')
+                num_loops = len(o.data.loops)
+                for i in range(num_loops):
+                    ca.data[i].color = default_color
+
+            # Set 'cel_mid' attribute as active
+            o.data.color_attributes.active_color = o.data.color_attributes['cel_mid']
+
 
     def cel_darktone():
         selected_meshes = [o for o in bpy.context.selected_objects if o.type == 'MESH']
@@ -279,11 +297,15 @@ class vcol_mix:
                 else:
                     # If 'cel_mid' attribute does not exist, create 'cel_dim' attribute with default color value
                     colname = 'cel_dim'
-                    set_col = (0.5, 0.5, 0.5, 0.0)
-                    vcol_mix.process_color_attribute(colname, set_col)
+                    ca = o.data.color_attributes.new(name=colname, domain='CORNER', type='BYTE_COLOR')
+                    default_color = [128, 128, 128, 128]  # Adjust the default color as needed
+                    num_loops = len(o.data.loops)
+                    for i in range(num_loops):
+                        ca.data[i].color = default_color
 
             # Set 'cel_dim' attribute as active
             o.data.color_attributes.active_color = o.data.color_attributes['cel_dim']
+
 
     def remove_littone():
         colname = 'cel_lit'
