@@ -9,7 +9,7 @@ class OverpaintCameraBatchProjection(bpy.types.Operator):
     image_directory: bpy.props.StringProperty(name="Image Directory", subtype='DIR_PATH')
     start_frame: bpy.props.IntProperty(name="Start Frame", default=bpy.context.scene.frame_start, min=0)
     end_frame: bpy.props.IntProperty(name="End Frame", default=bpy.context.scene.frame_end, min=0)
-    skip_first_images: bpy.props.IntProperty(name="Skip First Images", default=7, min=0)
+    skip_first_images: bpy.props.IntProperty(name="Skip First Images", default=0, min=0)
     project_every_nth: bpy.props.IntProperty(name="Project Every nth", default=2, min=1)
     merge_mesh: bpy.props.BoolProperty(name="Merge Mesh", default=False)
 
