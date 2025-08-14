@@ -415,6 +415,9 @@ class vcol_mix:
             # Return to the previous mode if needed
             vcol_mask.back_to_mode(prev_mode)
 
+    def remove_highlight():
+        colname = 'cel_hgl'
+        vcol_mix.remove_color_attribute(colname)
 
     def remove_littone():
         colname = 'cel_lit'
@@ -426,6 +429,10 @@ class vcol_mix:
 
     def remove_darktone():
         colname = 'cel_dim'
+        vcol_mix.remove_color_attribute(colname)
+
+    def remove_ambient():
+        colname = 'cel_amb'
         vcol_mix.remove_color_attribute(colname)
 
     def process_color_attribute(colname, set_col):
