@@ -339,13 +339,17 @@ categories["mp_Combo_op"]["operators"] = [
     create_operator_2("vcol_mix.remove_softlight", "X", "PROP_CON"),
     create_operator_2("vcol_mix.remove_darken", "X", "LAYER_USED"),
 
+    #create_operator_2("vcol_mix.cel_highlight", "hgl", "NODE_SOCKET_COLLECTION"),
     create_operator_2("vcol_mix.cel_littone", "lit", "NODE_SOCKET_COLLECTION"),
     create_operator_2("vcol_mix.cel_midtone", "mid", "NODE_SOCKET_FLOAT"),
     create_operator_2("vcol_mix.cel_darktone", "dim", "NODE_SOCKET_MENU"),
+    #create_operator_2("vcol_mix.cel_ambient", "amb", "NODE_SOCKET_COLLECTION"),
 
+    #create_operator_2("vcol_mix.remove_highlight", "X", "NODE_SOCKET_COLLECTION"),
     create_operator_2("vcol_mix.remove_littone", "X", "NODE_SOCKET_COLLECTION"),
     create_operator_2("vcol_mix.remove_midtone", "X", "NODE_SOCKET_FLOAT"),
     create_operator_2("vcol_mix.remove_darktone", "X", "NODE_SOCKET_MENU"),
+    #create_operator_2("vcol_mix.remove_ambient", "X", "NODE_SOCKET_COLLECTION"),
     
     create_operator_1("obj_region_ID_assign", "assign to obj", "COPY_ID"),
     create_operator_2("vcol_mask.region_ID_toggle", "", "HIDE_OFF"),
