@@ -238,73 +238,118 @@ class vcol_mix:
         colname = 'mix_darken'
         vcol_mix.remove_color_attribute(colname)
 
+
+    @staticmethod
+    def ensure_object_mode():
+        """Switch to Object mode and return the previous mode name."""
+        prev_mode = bpy.context.object.mode
+        if prev_mode != 'OBJECT':
+            bpy.ops.object.mode_set(mode='OBJECT')
+        return prev_mode
+
+    @staticmethod
+    def back_to_mode(prev_mode):
+        """Return to the previous mode (if not OBJECT)."""
+        if prev_mode != 'OBJECT':
+            try:
+                bpy.ops.object.mode_set(mode=prev_mode)
+            except Exception as e:
+                print(f"Failed to switch back to mode: {prev_mode}, Error: {e}")
+
+    @staticmethod
     def cel_littone():
+        colname = 'cel_lit'
+        default_color = (1.0, 1.0, 1.0, 1.0)  # 0~1
+
         selected_meshes = [o for o in bpy.context.selected_objects if o.type == 'MESH']
 
         for o in selected_meshes:
             bpy.context.view_layer.objects.active = o
+            mesh = o.data
 
-            if not o.data.color_attributes.get('cel_lit'):
-                if o.data.color_attributes.get('cel_mid'):
-                    # If 'cel_mid' attribute exists, duplicate it and rename the duplicate
-                    o.data.color_attributes.active_color = o.data.color_attributes['cel_mid']
+            # Ensure Blender is in Object mode before attempting operations
+            prev_mode = vcol_mix.ensure_object_mode()
+
+            if colname not in mesh.color_attributes:
+                if 'cel_mid' in mesh.color_attributes:
+                    mesh.color_attributes.active_color = mesh.color_attributes['cel_mid']
                     bpy.ops.geometry.color_attribute_duplicate()
-                    o.data.color_attributes[-1].name = 'cel_lit'
+                    mesh.color_attributes[-1].name = colname
                 else:
-                    # If 'cel_mid' attribute does not exist, create 'cel_lit' attribute with default color value
-                    colname = 'cel_lit'
-                    ca = o.data.color_attributes.new(name=colname, domain='CORNER', type='BYTE_COLOR')
-                    default_color = [128, 128, 128, 128]
-                    num_loops = len(o.data.loops)
-                    for i in range(num_loops):
-                        ca.data[i].color = default_color
+                    ca = mesh.color_attributes.new(
+                        name=colname,
+                        domain='CORNER',
+                        type='BYTE_COLOR'
+                    )
+                    for elem in ca.data:
+                        elem.color = default_color
 
-            # Set 'cel_lit' attribute as active
-            o.data.color_attributes.active_color = o.data.color_attributes['cel_lit']
+            mesh.color_attributes.active_color = mesh.color_attributes[colname]
 
+            # Return to the previous mode if needed
+            vcol_mix.back_to_mode(prev_mode)
+
+    @staticmethod
     def cel_midtone():
         colname = 'cel_mid'
-        default_color = [128, 128, 128, 128]  # Adjust the default color as needed
+        default_color = (0.5, 0.5, 0.5, 1.0)
 
         selected_meshes = [o for o in bpy.context.selected_objects if o.type == 'MESH']
 
         for o in selected_meshes:
             bpy.context.view_layer.objects.active = o
+            mesh = o.data
 
-            if not o.data.color_attributes.get('cel_mid'):
-                # If 'cel_mid' attribute does not exist, create 'cel_mid' attribute with default color value
-                ca = o.data.color_attributes.new(name=colname, domain='CORNER', type='BYTE_COLOR')
-                num_loops = len(o.data.loops)
-                for i in range(num_loops):
-                    ca.data[i].color = default_color
+            # Ensure Blender is in Object mode before attempting operations
+            prev_mode = vcol_mix.ensure_object_mode()
 
-            # Set 'cel_mid' attribute as active
-            o.data.color_attributes.active_color = o.data.color_attributes['cel_mid']
+            if 'cel_mid' not in mesh.color_attributes:
+                ca = mesh.color_attributes.new(
+                    name=colname,
+                    domain='CORNER',
+                    type='BYTE_COLOR'
+                )
+                for elem in ca.data:
+                    elem.color = default_color
 
+            mesh.color_attributes.active_color = mesh.color_attributes['cel_mid']
 
+            # Return to the previous mode if needed
+            vcol_mix.back_to_mode(prev_mode)
+
+    @staticmethod
     def cel_darktone():
+        colname = 'cel_dim'
+        default_color = (0.1, 0.1, 0.1, 1.0)
+
         selected_meshes = [o for o in bpy.context.selected_objects if o.type == 'MESH']
 
         for o in selected_meshes:
             bpy.context.view_layer.objects.active = o
+            mesh = o.data
 
-            if not o.data.color_attributes.get('cel_dim'):
-                if o.data.color_attributes.get('cel_mid'):
-                    # If 'cel_mid' attribute exists, duplicate it and rename the duplicate
-                    o.data.color_attributes.active_color = o.data.color_attributes['cel_mid']
+            # Ensure Blender is in Object mode before attempting operations
+            prev_mode = vcol_mix.ensure_object_mode()
+
+            if colname not in mesh.color_attributes:
+                if 'cel_mid' in mesh.color_attributes:
+                    mesh.color_attributes.active_color = mesh.color_attributes['cel_mid']
                     bpy.ops.geometry.color_attribute_duplicate()
-                    o.data.color_attributes[-1].name = 'cel_dim'
+                    mesh.color_attributes[-1].name = colname
                 else:
-                    # If 'cel_mid' attribute does not exist, create 'cel_dim' attribute with default color value
-                    colname = 'cel_dim'
-                    ca = o.data.color_attributes.new(name=colname, domain='CORNER', type='BYTE_COLOR')
-                    default_color = [128, 128, 128, 128]  # Adjust the default color as needed
-                    num_loops = len(o.data.loops)
-                    for i in range(num_loops):
-                        ca.data[i].color = default_color
+                    ca = mesh.color_attributes.new(
+                        name=colname,
+                        domain='CORNER',
+                        type='BYTE_COLOR'
+                    )
+                    for elem in ca.data:
+                        elem.color = default_color
 
-            # Set 'cel_dim' attribute as active
-            o.data.color_attributes.active_color = o.data.color_attributes['cel_dim']
+            mesh.color_attributes.active_color = mesh.color_attributes[colname]
+
+            # Return to the previous mode if needed
+            vcol_mix.back_to_mode(prev_mode)
+
 
 
     def remove_littone():
