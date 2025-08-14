@@ -267,7 +267,7 @@ class vcol_mix:
             mesh = o.data
 
             # Ensure Blender is in Object mode before attempting operations
-            prev_mode = vcol_mask.ensure_object_mode()
+            prev_mode = vcol_mix.ensure_object_mode()
 
             if colname not in mesh.color_attributes:
                 if 'cel_lit' in mesh.color_attributes:
@@ -286,7 +286,7 @@ class vcol_mix:
             mesh.color_attributes.active_color = mesh.color_attributes[colname]
 
             # Return to the previous mode if needed
-            vcol_mask.back_to_mode(prev_mode)
+            vcol_mix.back_to_mode(prev_mode)
 
     @staticmethod
     def cel_littone():
@@ -394,7 +394,7 @@ class vcol_mix:
             mesh = o.data
 
             # Ensure Blender is in Object mode before attempting operations
-            prev_mode = vcol_mask.ensure_object_mode()
+            prev_mode = vcol_mix.ensure_object_mode()
 
             if colname not in mesh.color_attributes:
                 if 'cel_dim' in mesh.color_attributes:
@@ -413,7 +413,7 @@ class vcol_mix:
             mesh.color_attributes.active_color = mesh.color_attributes[colname]
 
             # Return to the previous mode if needed
-            vcol_mask.back_to_mode(prev_mode)
+            vcol_mix.back_to_mode(prev_mode)
 
     def remove_highlight():
         colname = 'cel_hgl'
