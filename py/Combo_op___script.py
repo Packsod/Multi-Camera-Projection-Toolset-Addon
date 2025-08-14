@@ -257,6 +257,38 @@ class vcol_mix:
                 print(f"Failed to switch back to mode: {prev_mode}, Error: {e}")
 
     @staticmethod
+    def cel_highlight():
+        colname = 'cel_hgl'
+
+        selected_meshes = [o for o in bpy.context.selected_objects if o.type == 'MESH']
+
+        for o in selected_meshes:
+            bpy.context.view_layer.objects.active = o
+            mesh = o.data
+
+            # Ensure Blender is in Object mode before attempting operations
+            prev_mode = vcol_mask.ensure_object_mode()
+
+            if colname not in mesh.color_attributes:
+                if 'cel_lit' in mesh.color_attributes:
+                    mesh.color_attributes.active_color = mesh.color_attributes['cel_lit']
+                    bpy.ops.geometry.color_attribute_duplicate()
+                    mesh.color_attributes[-1].name = colname
+                else:
+                    ca = mesh.color_attributes.new(
+                        name=colname,
+                        domain='CORNER',
+                        type='BYTE_COLOR'
+                    )
+                    for elem in ca.data:
+                        elem.color = (1.0, 1.0, 1.0, 1.0)  # Default highlight color
+
+            mesh.color_attributes.active_color = mesh.color_attributes[colname]
+
+            # Return to the previous mode if needed
+            vcol_mask.back_to_mode(prev_mode)
+
+    @staticmethod
     def cel_littone():
         colname = 'cel_lit'
         default_color = (1.0, 1.0, 1.0, 1.0)  # 0~1
@@ -350,6 +382,38 @@ class vcol_mix:
             # Return to the previous mode if needed
             vcol_mix.back_to_mode(prev_mode)
 
+    @staticmethod
+    def cel_ambient():
+        colname = 'cel_amb'
+        default_color = (0.2, 0.2, 0.2, 1.0)  # Default ambient color
+
+        selected_meshes = [o for o in bpy.context.selected_objects if o.type == 'MESH']
+
+        for o in selected_meshes:
+            bpy.context.view_layer.objects.active = o
+            mesh = o.data
+
+            # Ensure Blender is in Object mode before attempting operations
+            prev_mode = vcol_mask.ensure_object_mode()
+
+            if colname not in mesh.color_attributes:
+                if 'cel_dim' in mesh.color_attributes:
+                    mesh.color_attributes.active_color = mesh.color_attributes['cel_dim']
+                    bpy.ops.geometry.color_attribute_duplicate()
+                    mesh.color_attributes[-1].name = colname
+                else:
+                    ca = mesh.color_attributes.new(
+                        name=colname,
+                        domain='CORNER',
+                        type='BYTE_COLOR'
+                    )
+                    for elem in ca.data:
+                        elem.color = default_color
+
+            mesh.color_attributes.active_color = mesh.color_attributes[colname]
+
+            # Return to the previous mode if needed
+            vcol_mask.back_to_mode(prev_mode)
 
 
     def remove_littone():
