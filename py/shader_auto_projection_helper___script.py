@@ -24,9 +24,20 @@ def manage_material_and_node_group():
             return None
 
         nodes = node_tree.nodes
-        psd_image = f"CamP_sub{index:02d}_render.psd"
-        webm_image = f"CamP_sub{index:02d}_render.webm"
-        tex_image_node = f"CamP_sub{index:02d}_render"
+        base_tex_image_node = f"CamP_sub{index:02d}_render"
+
+        # Find all tex_image_node that match the naming pattern
+        potential_tex_image_nodes = [node.name for node in nodes if node.name.startswith(base_tex_image_node) and ("_render" in node.name)]
+
+        if not potential_tex_image_nodes:
+            popup_message(f"No tex_image_node found matching {base_tex_image_node} in the current node tree.")
+            return None
+
+        # Default to the first matched node
+        tex_image_node_name = potential_tex_image_nodes[0]
+        tex_image_node = nodes[tex_image_node_name]
+        psd_image = f"{tex_image_node_name}.psd"
+        webm_image = f"{tex_image_node_name}.webm"
         img_conv_node = f"projection_layer{index:02d}"
         layer_mixer = '(24) layer_mixer'
         socket_in = f'――――――  {index:02}'
@@ -43,7 +54,7 @@ def manage_material_and_node_group():
             psd_path = os.path.join(os.path.dirname(bpy.data.filepath), f"multires_projecting/CamP_sub{index:02d}/{psd_image}")
             webm_path = os.path.join(os.path.dirname(bpy.data.filepath), f"multires_projecting/CamP_sub{index:02d}/{webm_image}")
 
-        if not all([check_node_exists(nodes, node) for node in [tex_image_node, img_conv_node, layer_mixer]]):
+        if not all([check_node_exists(nodes, node) for node in [tex_image_node.name, img_conv_node, layer_mixer]]):
             popup_message("One or more nodes do not exist in the current node tree.")
             return None
 
@@ -52,7 +63,7 @@ def manage_material_and_node_group():
         elif os.path.exists(bpy.path.abspath(psd_path)):
             psd_image = psd_image
         else:
-            nodes[tex_image_node].use_custom_color = False
+            tex_image_node.use_custom_color = False
             return None
 
         if psd_image not in bpy.data.images:
@@ -62,32 +73,32 @@ def manage_material_and_node_group():
             image.reload()
             image['autoreload_modification_time'] = str(os.path.getmtime(bpy.path.abspath(os.path.join(os.path.dirname(bpy.data.filepath), base_path, psd_image))))
 
-        if not nodes[tex_image_node].mute:
+        if not tex_image_node.mute:
             if os.path.exists(bpy.path.abspath(os.path.join(os.path.dirname(bpy.data.filepath), base_path, psd_image))):
-                nodes[tex_image_node].image = bpy.data.images[psd_image]
+                tex_image_node.image = bpy.data.images[psd_image]
                 node_tree.links.new(nodes[img_conv_node].outputs[out_c], nodes[layer_mixer].inputs[socket_in])
                 node_tree.links.new(nodes[img_conv_node].outputs[out_a], nodes[layer_mixer].inputs[socket_in_a])
                 if psd_image == webm_image:
-                    nodes[tex_image_node].use_custom_color = True
-                    nodes[tex_image_node].color = (0.12, 0.42, 0.50)
-                    nodes[tex_image_node].image_user.use_cyclic = True
-                    nodes[tex_image_node].image_user.use_auto_refresh = True
-                    nodes[tex_image_node].image_user.frame_duration = image.frame_duration
+                    tex_image_node.use_custom_color = True
+                    tex_image_node.color = (0.12, 0.42, 0.50)
+                    tex_image_node.image_user.use_cyclic = True
+                    tex_image_node.image_user.use_auto_refresh = True
+                    tex_image_node.image_user.frame_duration = image.frame_duration
 
                 else:
-                    nodes[tex_image_node].use_custom_color = True
-                    nodes[tex_image_node].color = (0.34, 0.55, 0.80)
+                    tex_image_node.use_custom_color = True
+                    tex_image_node.color = (0.34, 0.55, 0.80)
             else:
-                nodes[tex_image_node].image = None
-                nodes[tex_image_node].mute = True
+                tex_image_node.image = None
+                tex_image_node.mute = True
                 try:
                     node_tree.links.remove(nodes[layer_mixer].inputs[socket_in].links[0])
                     node_tree.links.remove(nodes[layer_mixer].inputs[socket_in_a].links[0])
                 except:
                     pass
         else:
-            nodes[tex_image_node].image = None
-            nodes[tex_image_node].use_custom_color = False
+            tex_image_node.image = None
+            tex_image_node.use_custom_color = False
             try:
                 node_tree.links.remove(nodes[layer_mixer].inputs[socket_in].links[0])
                 node_tree.links.remove(nodes[layer_mixer].inputs[socket_in_a].links[0])
