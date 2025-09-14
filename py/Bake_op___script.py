@@ -20,6 +20,7 @@ class BakeGI:
             current_scene_name = bpy.context.scene.name
             current_viewlayer_name = bpy.context.window.view_layer.name
             current_world_name = bpy.context.scene.world.name
+            current_render_engine = bpy.context.scene.render.engine  # Record the current render engine
 
             # ---------- SET OVERRIDE CLAY MAT ----------
             override_clay_mat = bpy.data.materials.get('override_clay_GI')
@@ -101,9 +102,6 @@ class BakeGI:
                 named_color_attributes = bpy.context.object.data.color_attributes
                 bpy.context.object.data.attributes.active_color = named_color_attributes.get(colname)
 
-                # Switch to the Cycles render engine
-                # bpy.context.scene.render.engine = 'CYCLES'
-
                 # Set the bake settings
                 bpy.context.scene.cycles.bake_type = 'DIFFUSE'
                 bpy.context.scene.cycles.view_from = 'ABOVE_SURFACE'
@@ -122,7 +120,7 @@ class BakeGI:
                 bpy.ops.object.bake()
 
             # Recover settings
-            bpy.context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
+            bpy.context.scene.render.engine = current_render_engine  # Restore the original render engine
             bpy.context.view_layer.material_override = None
             bpy.context.scene.world = bpy.data.worlds[current_world_name]
 
@@ -167,7 +165,6 @@ class BakeGI:
         """Function to execute the AO baking process."""
         # Save the current render engine and scene
         current_render_engine = bpy.context.scene.render.engine
-        current_scene = bpy.context.scene
 
         # Switch to Cycles render engine
         bpy.context.scene.render.engine = 'CYCLES'
@@ -192,8 +189,7 @@ class BakeGI:
             bpy.context.scene.render.bake.target = 'VERTEX_COLORS'
             bpy.ops.object.bake(type='AO')
 
-        # Restore the original render engine and scene
-        bpy.context.window.scene = current_scene
+        # Restore the original render engine
         bpy.context.scene.render.engine = current_render_engine
 
 class Vcolcombine:
@@ -215,7 +211,6 @@ class Vcolcombine:
 
         for mesh in selected_meshes:
             # Add a new vertex color for Vcolcombine
-            # Mesh.vertex_colors is deprecated, and the new sculpt paint tool uses mesh.attributes instead
             if not mesh.data.attributes.get(colname):  # check if col already exists
                 # Create Vertex Color for each selected mesh
                 mesh.data.attributes.new(name=colname, domain='CORNER', type='FLOAT_COLOR')
@@ -279,7 +274,6 @@ class Vcolcombine:
                 else:
                     vertex_color_node = basecol_nodes.get("Color Attribute")
 
-                from mathutils import Vector
                 vertex_color_node.location = Vector((-200.0, 0.0))
 
                 # Set the vertex_color layer we created at the beginning as input
@@ -304,7 +298,7 @@ class Vcolcombine:
                 mesh.material_slots[0].material = bpy.data.materials['Basecol']
                 bpy.ops.object.material_slot_remove_unused()
 
-        bpy.context.scene.render.engine = 'BLENDER_EEVEE_NEXT'
+        bpy.context.scene.render.engine = current_render_engine  # Restore the original render engine
 
         # End the undo block
         bpy.ops.ed.undo_push(message="End of script operation")
