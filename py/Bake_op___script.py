@@ -1,7 +1,7 @@
 import bpy
 from mathutils import Vector
 
-class BakeGI:
+class BakeVcol:
     @staticmethod
     def bake_selected_meshes(bake_settings):
         # Start the undo block
@@ -146,7 +146,7 @@ class BakeGI:
             "use_pass_transmission": True,
             "use_pass_emit": True,
         }
-        BakeGI.bake_selected_meshes(bake_settings)
+        BakeVcol.bake_selected_meshes(bake_settings)
 
     @staticmethod
     def bake_GI_indirect():
@@ -158,7 +158,7 @@ class BakeGI:
             "use_pass_transmission": True,
             "use_pass_emit": True,
         }
-        BakeGI.bake_selected_meshes(bake_settings)
+        BakeVcol.bake_selected_meshes(bake_settings)
 
     @staticmethod
     def bake_ambient_occlusion():
@@ -192,11 +192,12 @@ class BakeGI:
         # Restore the original render engine
         bpy.context.scene.render.engine = current_render_engine
 
-class Vcolcombine:
     @staticmethod
     def bake_vcolcombine():
         # Start the undo block
         bpy.ops.ed.undo_push(message="Start of script operation")
+
+        current_render_engine = bpy.context.scene.render.engine
 
         # Check if there are any selected mesh objects
         selected_meshes = [o for o in bpy.context.selected_objects if o.type == 'MESH']
@@ -305,6 +306,6 @@ class Vcolcombine:
 
 
 # Uncomment the following lines to test the functions
-# BakeGI.bake_GI_direct()
-# BakeGI.bake_ambient_occlusion()
-# Vcolcombine.bake_vcolcombine()
+# BakeVcol.bake_GI_direct()
+# BakeVcol.bake_ambient_occlusion()
+# BakeVcol.bake_vcolcombine()
