@@ -161,10 +161,10 @@ class MultiresProjectingPanel(bpy.types.Panel):
 
 
 categories["mp_vcol_bake"]["operators"] = [
-    create_operator_6("BakeGI.bake_GI_direct", "direct", "EXPERIMENTAL"),
-    create_operator_6("BakeGI.bake_GI_indirect", "indirect", "EXPERIMENTAL"),
-    create_operator_6("BakeGI.bake_ambient_occlusion", "AO bake", "MATSHADERBALL"),
-    create_operator_6("Vcolcombine.bake_vcolcombine", "combine bake", "NODE_MATERIAL"),
+    create_operator_6("BakeVcol.bake_GI_direct", "direct", "EXPERIMENTAL"),
+    create_operator_6("BakeVcol.bake_GI_indirect", "indirect", "EXPERIMENTAL"),
+    create_operator_6("BakeVcol.bake_ambient_occlusion", "AO bake", "MATSHADERBALL"),
+    create_operator_6("BakeVcol.bake_vcolcombine", "combine bake", "NODE_MATERIAL"),
     create_operator_1("misc_prepare_for_NPR_light_bake", "prepare for NPR light bake", "SETTINGS"),
 ]
 
