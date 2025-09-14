@@ -69,7 +69,10 @@ def create_operator_4(def_name, label, icon):
 def create_operator_5(def_name, label, icon):
     return create_operator_big(def_name, label, icon, "shader_op___script.py")
 
-def create_operator_6(def_name, label):
+def create_operator_6(def_name, label, icon):
+    return create_operator_big(def_name, label, icon, "Bake_op___script.py")
+
+def create_operator_7(def_name, label):
     return create_operator_big(def_name, label, 'NONE', "shader_nodegroups___script.py")
 
 
@@ -158,14 +161,15 @@ class MultiresProjectingPanel(bpy.types.Panel):
 
 
 categories["mp_vcol_bake"]["operators"] = [
-    create_operator_1("Vcol_GI_bake", "GI bake ", "EXPERIMENTAL"),
-    create_operator_1("Vcol_AO_bake", "AO bake", "MATSHADERBALL"),
-    create_operator_1("Vcol_combine_bake", "combine bake", "NODE_MATERIAL"),
+    create_operator_6("BakeGI.bake_GI_direct", "direct", "EXPERIMENTAL"),
+    create_operator_6("BakeGI.bake_GI_indirect", "indirect", "EXPERIMENTAL"),
+    create_operator_6("BakeGI.bake_ambient_occlusion", "AO bake", "MATSHADERBALL"),
+    create_operator_6("Vcolcombine.bake_vcolcombine", "combine bake", "NODE_MATERIAL"),
     create_operator_1("misc_prepare_for_NPR_light_bake", "prepare for NPR light bake", "SETTINGS"),
 ]
 
 categories["mp_vcol_bake"]["row_data"] = [
-    ("", 1),
+    ("bake_GI", 2),
     ("", 1),
     ("", 1),
     ("", 1),
@@ -371,34 +375,34 @@ categories["mp_Combo_op"]["row_data"] = [
 
 categories["mp_nodegroups"]["operators"] = [   
     create_operator_5("shader_add_gradient_mask", "gradient mask add", "MOD_MASK"), 
-    create_operator_6("ShaderAdder.npr_Key_Light", ".npr_Key Light"),
-    create_operator_6("ShaderAdder.npr_Specular", ".npr_Specular"),
-    create_operator_6("ShaderAdder.npr_Virtual_Point_Light", ".npr_Virtual Point Light"),
-    create_operator_6("ShaderAdder.npr_Virtual_Spot_Light", ".npr_Virtual Spot Light"),
-    create_operator_6("ShaderAdder.npr_Virtual_Sun_Light", ".npr_Virtual Sun Light"),
+    create_operator_7("ShaderAdder.npr_Key_Light", ".npr_Key Light"),
+    create_operator_7("ShaderAdder.npr_Specular", ".npr_Specular"),
+    create_operator_7("ShaderAdder.npr_Virtual_Point_Light", ".npr_Virtual Point Light"),
+    create_operator_7("ShaderAdder.npr_Virtual_Spot_Light", ".npr_Virtual Spot Light"),
+    create_operator_7("ShaderAdder.npr_Virtual_Sun_Light", ".npr_Virtual Sun Light"),
 #4
-    create_operator_6("ShaderAdder.npr_layer_mix_shader", ".(09) npr_layer_mix_shader"),
-    create_operator_6("ShaderAdder.npr_Color", ".npr_Color"),
-    create_operator_6("ShaderAdder.npr_Layer_Adjustment", ".npr_Layer Adjustment"),
-    create_operator_6("ShaderAdder.npr_Global_Color", ".npr_Global Color"),
+    create_operator_7("ShaderAdder.npr_layer_mix_shader", ".(09) npr_layer_mix_shader"),
+    create_operator_7("ShaderAdder.npr_Color", ".npr_Color"),
+    create_operator_7("ShaderAdder.npr_Layer_Adjustment", ".npr_Layer Adjustment"),
+    create_operator_7("ShaderAdder.npr_Global_Color", ".npr_Global Color"),
 #8        
-    create_operator_6("ShaderAdder.npr_Linear_Gradient", ".npr_Linear Gradient"),
-    create_operator_6("ShaderAdder.npr_Spherical_Gradient", ".npr_Spherical Gradient"),
-    create_operator_6("ShaderAdder.npr_Local_Gradient", ".npr_Local Gradient"),
-    create_operator_6("ShaderAdder.npr_Z_Depth", ".npr_Z Depth"),
+    create_operator_7("ShaderAdder.npr_Linear_Gradient", ".npr_Linear Gradient"),
+    create_operator_7("ShaderAdder.npr_Spherical_Gradient", ".npr_Spherical Gradient"),
+    create_operator_7("ShaderAdder.npr_Local_Gradient", ".npr_Local Gradient"),
+    create_operator_7("ShaderAdder.npr_Z_Depth", ".npr_Z Depth"),
 #12
-    create_operator_6("ShaderAdder.npr_2D_Outline", ".npr_2D Outline"),
-    create_operator_6("ShaderAdder.npr_2D_Rim_Light", ".npr_2D Rim Light",),
-    create_operator_6("ShaderAdder.npr_2D_Specular", ".npr_2D Specular"),
-    create_operator_6("ShaderAdder.npr_Matcap", ".npr_Matcap"),
+    create_operator_7("ShaderAdder.npr_2D_Outline", ".npr_2D Outline"),
+    create_operator_7("ShaderAdder.npr_2D_Rim_Light", ".npr_2D Rim Light",),
+    create_operator_7("ShaderAdder.npr_2D_Specular", ".npr_2D Specular"),
+    create_operator_7("ShaderAdder.npr_Matcap", ".npr_Matcap"),
 #16
-    create_operator_6("ShaderAdder.npr_Ambient_Occlusion_Baked", ".npr_Ambient Occlusion (Baked)"),
-    create_operator_6("ShaderAdder.npr_Ambient_Occlusion_SS", ".npr_Ambient Occlusion (SS)"),
+    create_operator_7("ShaderAdder.npr_Ambient_Occlusion_Baked", ".npr_Ambient Occlusion (Baked)"),
+    create_operator_7("ShaderAdder.npr_Ambient_Occlusion_SS", ".npr_Ambient Occlusion (SS)"),
 #18
-    create_operator_6("ShaderAdder_add_Halftone_Style", ".Halftone Style"),
-    create_operator_6("ShaderAdder_add_Hatch_Style", ".Hatch Style"),
-    create_operator_6("ShaderAdder_add_Painterly_Style", ".Painterly Style"),
-    create_operator_6("ShaderAdder_add_Anisotropic_Style", ".Anisotropic Style"),
+    create_operator_7("ShaderAdder_add_Halftone_Style", ".Halftone Style"),
+    create_operator_7("ShaderAdder_add_Hatch_Style", ".Hatch Style"),
+    create_operator_7("ShaderAdder_add_Painterly_Style", ".Painterly Style"),
+    create_operator_7("ShaderAdder_add_Anisotropic_Style", ".Anisotropic Style"),
 ]
 
 categories["mp_nodegroups"]["layout.separator"] =[4, 8, 12, 16, 18]
