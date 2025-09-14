@@ -74,15 +74,23 @@ class BakeVcol:
                     light.hide_viewport = False
 
             # ---------- SET WORLD ----------
-            if 'World_PSA' in bpy.data.worlds:
-                # create a new world
-                bpy.context.scene.world = bpy.data.worlds['World_PSA']
+            current_world = bpy.context.scene.world  # Record the current world
+            found_world = None
 
-            else:
-                world_PSA = bpy.data.worlds.new("World_PSA")
-                bpy.context.scene.world = world_PSA
+            # Iterate over all worlds to find the one we want to use
+            for world in bpy.data.worlds:
+                if world != current_world and world.name != "World_GI":
+                    found_world = world
+                    break
 
-            bpy.context.scene.world.use_fake_user = True
+            # If no other world found, create a new one
+            if found_world is None:
+                new_world = bpy.data.worlds.new("World_GI")
+                found_world = new_world
+
+            # Switch to the found world
+            bpy.context.scene.world = found_world
+            # -------------------------------
 
             colname = 'GI'
             for mesh in selected_meshes:
@@ -122,7 +130,7 @@ class BakeVcol:
             # Recover settings
             bpy.context.scene.render.engine = current_render_engine  # Restore the original render engine
             bpy.context.view_layer.material_override = None
-            bpy.context.scene.world = bpy.data.worlds[current_world_name]
+            bpy.context.scene.world = current_world
 
             # Recover lights hide/show
             for light in lights:
