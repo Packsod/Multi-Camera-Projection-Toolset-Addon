@@ -371,6 +371,8 @@ class NPR_bake_helper:
             bpy.context.window_manager['script_state'] = self.script_state
 
     def execute_script_on(self):
+        problematic_materials = []
+
         for mat in bpy.data.materials:
             if mat.node_tree:
                 nodes = mat.node_tree.nodes
@@ -378,7 +380,7 @@ class NPR_bake_helper:
 
                 NPR_shader_node = next((n for n in nodes if n.type == 'GROUP' and n.node_tree and n.node_tree.name == self.shader_name), None)
                 if NPR_shader_node is None:
-                    print(f"LBS shader node not found in material '{mat.name}'. Skipping...")
+                    print(f"NPR shader node not found in material '{mat.name}'. Skipping...")
                     continue
 
                 NPR_shader_node.use_custom_color = True
@@ -389,32 +391,53 @@ class NPR_bake_helper:
                 links_to_modify = []
                 links_to_remove = []
 
-                for i, socket in enumerate(self.INPUT_SOCKETS):
-                    for link in list(links):
-                        if link.to_node.name == NPR_shader_node.name and link.to_socket.name == socket:
-                            self.NPR_NODES[i] = link.from_node.name
+                try:
+                    for i, socket in enumerate(self.INPUT_SOCKETS):
+                        for link in list(links):
+                            if link.to_node.name == NPR_shader_node.name and link.to_socket.name == socket:
+                                self.NPR_NODES[i] = link.from_node.name
 
-                            from_socket = nodes[self.NPR_NODES[i]].outputs['Color']
-                            to_socket = nodes[NPR_shader_node.name].inputs[self.INPUT_FOR_BAKE_SOCKETS_COL[i]]
-                            links.new(from_socket, to_socket)
+                                from_socket = nodes[self.NPR_NODES[i]].outputs['Color']
+                                to_socket = nodes[NPR_shader_node.name].inputs[self.INPUT_FOR_BAKE_SOCKETS_COL[i]]
+                                links.new(from_socket, to_socket)
 
-                            from_socket = nodes[self.NPR_NODES[i]].outputs['Mask']
-                            to_socket = nodes[NPR_shader_node.name].inputs[self.INPUT_FOR_BAKE_SOCKETS_A[i]]
-                            links.new(from_socket, to_socket)
+                                from_socket = nodes[self.NPR_NODES[i]].outputs['Mask']
+                                to_socket = nodes[NPR_shader_node.name].inputs[self.INPUT_FOR_BAKE_SOCKETS_A[i]]
+                                links.new(from_socket, to_socket)
 
-                        elif nodes[NPR_shader_node.name].inputs[socket].is_linked == False:
-                            for l in list(nodes[NPR_shader_node.name].inputs[self.INPUT_FOR_BAKE_SOCKETS_A[i]].links):
-                                links_to_remove.append(l)
-                            for l in list(nodes[NPR_shader_node.name].inputs[self.INPUT_FOR_BAKE_SOCKETS_COL[i]].links):
-                                links_to_remove.append(l)
+                            elif nodes[NPR_shader_node.name].inputs[socket].is_linked == False:
+                                for l in list(nodes[NPR_shader_node.name].inputs[self.INPUT_FOR_BAKE_SOCKETS_A[i]].links):
+                                    links_to_remove.append(l)
+                                for l in list(nodes[NPR_shader_node.name].inputs[self.INPUT_FOR_BAKE_SOCKETS_COL[i]].links):
+                                    links_to_remove.append(l)
 
-                for link in links_to_remove:
-                    try:
-                        links.remove(link)
-                    except:
-                        pass
+                    for link in links_to_remove:
+                        try:
+                            links.remove(link)
+                        except:
+                            pass
 
-                nodes[NPR_shader_node.name].inputs['realtime/baked'].default_value = 1
+                    nodes[NPR_shader_node.name].inputs['realtime/baked'].default_value = 1
+
+                except KeyError as e:
+                    problematic_materials.append(mat.name)
+                    print(f"KeyError in material '{mat.name}': {e}")
+
+        if problematic_materials:
+            self.show_popup_menu(problematic_materials)
+
+    def show_popup_menu(self, materials):
+        def draw(self, context):
+            layout = self.layout
+            layout.label(text="The following materials require the preset NPR node group:")
+            layout.label(text="Please plug preset NPR nodegroups into npr_layer_mix_shader nodegroup's socket:")
+
+            for mat_name in materials:
+                layout.label(text=mat_name)
+
+        bpy.context.window_manager.popup_menu(draw, title="Problematic Materials", icon='ERROR')
+
+
 
     def execute_script_off(self):
         for mat in bpy.data.materials:
@@ -424,7 +447,7 @@ class NPR_bake_helper:
 
                 NPR_shader_node = next((n for n in nodes if n.type == 'GROUP' and n.node_tree and n.node_tree.name == self.shader_name), None)
                 if NPR_shader_node is None:
-                    print(f"LBS shader node not found in material '{mat.name}'. Skipping...")
+                    print(f"NPR shader node not found in material '{mat.name}'. Skipping...")
                     continue
 
                 NPR_shader_node.use_custom_color = True
@@ -459,6 +482,7 @@ class NPR_bake_helper:
 def shader_NPR_bake_helper_toggle():
     NPRBakeHelper = NPR_bake_helper(".(09) npr_layer_mix_shader")
     NPRBakeHelper.toggle_script()
+
 
 
 
