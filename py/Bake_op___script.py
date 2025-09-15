@@ -70,7 +70,10 @@ class BakeVcol:
             # Record the active vertex color attribute for each selected mesh
             active_vertex_colors = {}
             for mesh in selected_meshes:
-                active_vertex_colors[mesh] = mesh.data.attributes.active_color.name
+                try:
+                    active_vertex_colors[mesh] = mesh.data.attributes.active_color.name
+                except AttributeError:
+                    pass
 
             for mesh in selected_meshes:
                 if not mesh.data.attributes.get(colname):
@@ -111,7 +114,10 @@ class BakeVcol:
 
             # Restore the active vertex color attribute for each selected mesh
             for mesh, active_color_name in active_vertex_colors.items():
-                mesh.data.attributes.active_color = mesh.data.attributes.get(active_color_name)
+                try:
+                    mesh.data.attributes.active_color = mesh.data.attributes.get(active_color_name)
+                except AttributeError:
+                    pass
 
         bpy.ops.ed.undo_push(message="End of script operation")
 
@@ -152,7 +158,6 @@ class BakeVcol:
         # Call bake_selected_meshes with colname 'shadow' and no world override
         BakeVcol.bake_selected_meshes(bake_settings, colname='shadow', use_world_override=False)
 
-
     @staticmethod
     def bake_ambient_occlusion():
         """Function to execute the AO baking process."""
@@ -168,7 +173,10 @@ class BakeVcol:
         # Record the active vertex color attribute for each selected mesh
         active_vertex_colors = {}
         for obj in mesh_objects:
-            active_vertex_colors[obj] = obj.data.attributes.active_color.name
+            try:
+                active_vertex_colors[obj] = obj.data.attributes.active_color.name
+            except AttributeError:
+                pass
 
         for obj in mesh_objects:
             # Create or get the "AO" vertex color attribute
@@ -177,7 +185,7 @@ class BakeVcol:
                 ao_layer = obj.data.attributes.new(name="AO", domain='CORNER', type='BYTE_COLOR')
             # Set "AO" as the active attribute for vertex colors
             obj.data.attributes.active_color = ao_layer
-            
+
         # Bake AO to vertex colors for each object
         for obj in mesh_objects:
             bpy.ops.object.select_all(action='DESELECT')
@@ -195,7 +203,10 @@ class BakeVcol:
 
         # Restore the active vertex color attribute for each selected mesh
         for obj, active_color_name in active_vertex_colors.items():
-            obj.data.attributes.active_color = obj.data.attributes.get(active_color_name)
+            try:
+                obj.data.attributes.active_color = obj.data.attributes.get(active_color_name)
+            except AttributeError:
+                pass
 
     @staticmethod
     def bake_vcolcombine():
@@ -217,9 +228,12 @@ class BakeVcol:
         original_active_colors = {}  # Dictionary to store original active colors
 
         for mesh in selected_meshes:
-            # Record the original active color
-            original_active_colors[mesh.name] = mesh.data.attributes.active_color
-            
+            try:
+                # Record the original active color
+                original_active_colors[mesh.name] = mesh.data.attributes.active_color
+            except AttributeError:
+                pass
+
             # Add a new vertex color for Vcolcombine
             if not mesh.data.attributes.get(colname):  # check if col already exists
                 # Create Vertex Color for each selected mesh
@@ -309,11 +323,13 @@ class BakeVcol:
 
         # Restore original active colors
         for mesh in selected_meshes:
-            mesh.data.attributes.active_color = original_active_colors[mesh.name]
+            try:
+                mesh.data.attributes.active_color = original_active_colors[mesh.name]
+            except AttributeError:
+                pass
 
         # End the undo block
         bpy.ops.ed.undo_push(message="End of script operation")
-
 
 # Uncomment the following lines to test the functions
 # BakeVcol.bake_GI_full()
