@@ -54,7 +54,7 @@ class OverpaintCameraBatchProjection(bpy.types.Operator):
                 bpy.context.scene.camera = bpy.context.scene.camera
                 bpy.ops.paint.texture_paint_toggle()
                 bpy.context.scene.tool_settings.image_paint.seam_bleed = 5
-                bpy.context.scene.tool_settings.image_paint.use_occlude = True
+                bpy.context.scene.tool_settings.image_paint.use_occlude = False
                 bpy.context.scene.tool_settings.image_paint.use_backface_culling = True
                 if merged_obj:
                     bpy.context.view_layer.objects.active = merged_obj
