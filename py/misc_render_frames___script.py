@@ -13,6 +13,15 @@ class RenderAnimationOperator(bpy.types.Operator):
         options={'ANIMATABLE'}
     )
 
+    color_management: bpy.props.EnumProperty(
+        name="Color Management",
+        items=[
+            ('FOLLOW_SCENE', 'Follow Scene', 'Use the color management settings of the scene'),
+            ('OVERRIDE', 'Override', 'Override the color management settings of the scene'),
+        ],
+        default='OVERRIDE'
+    )
+
     def invoke(self, context, event):
         node_tree = bpy.context.scene.node_tree
         output_path_node = node_tree.nodes.get("Output_path_MP")
@@ -27,6 +36,7 @@ class RenderAnimationOperator(bpy.types.Operator):
         layout = self.layout
         node_tree = bpy.context.scene.node_tree
         output_path_node = node_tree.nodes.get("Output_path_MP")
+        layout.prop(self, "color_management")
         if output_path_node:
             for i, slot in enumerate(output_path_node.file_slots):
                 layout.prop(self, "sockets_to_keep", index=i, text=slot.path)
@@ -43,6 +53,13 @@ class RenderAnimationOperator(bpy.types.Operator):
         original_render_filepath = bpy.context.scene.render.filepath
         original_frame_start = bpy.context.scene.frame_start
         original_frame_end = bpy.context.scene.frame_end
+
+        # Set the color management mode
+        bpy.context.scene.render.image_settings.color_management = self.color_management
+        # Jump to frame 1 at first, useful for "per_camera_resolution" add-on
+        bpy.context.scene.frame_set(1)
+        # Jump to frame_start
+        bpy.context.scene.frame_set(original_frame_start)
 
         # Get the Output_path_MP node and its original sockets
         node_tree = bpy.context.scene.node_tree
@@ -79,8 +96,16 @@ class RenderAnimationOperator(bpy.types.Operator):
         frame_start = bpy.context.scene.frame_start
         frame_end = bpy.context.scene.frame_end
 
-        # Jump to frame 1 at first, useful for "per_camera_resolution" add-on
-        bpy.context.scene.frame_set(1)
+        # If the user selected 'OVERRIDE', set the color management settings
+        if self.color_management == 'OVERRIDE':
+            bpy.context.scene.display_settings.display_device = 'sRGB'
+            bpy.context.scene.render.image_settings.view_settings.view_transform = 'Standard'
+            bpy.context.scene.render.image_settings.view_settings.look = 'None'
+            bpy.context.scene.render.image_settings.view_settings.exposure = 0
+            bpy.context.scene.render.image_settings.view_settings.gamma = 1
+            bpy.context.scene.render.image_settings.view_settings.use_curve_mapping = False
+            bpy.context.scene.render.image_settings.view_settings.use_white_balance = False
+
 
         # Try to get the output path from the node in the current scene's node tree
         try:
