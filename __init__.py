@@ -285,7 +285,9 @@ categories["mp_cam_and_tex"]["operators"] = [
     create_operator_3("Cam_Visibility.show_all_objects", "all","HIDE_OFF"),
     
     create_operator_1("Cam_CamP_render", "CN img export", "EXPORT"),
-    create_operator_3("Cam_Switch.CamP_fit_to_active", "active → CamP", "OUTLINER_OB_CAMERA"),
+    create_operator_3("Cam_Switch.CamP_fit_to_active", "📷→CamP", "OUTLINER_OB_CAMERA"),
+    create_operator_3("Cam_Switch.copy_cam_params_to_clipboard", "📷→📋", "OUTLINER_OB_CAMERA"),
+    create_operator_3("Cam_Switch.apply_cam_params_from_clipboard", "📋→📷", "OUTLINER_OB_CAMERA"),
     
     create_operator_1("Cam_CamP_save", "backup CamP", "FILE_TEXT"),
     create_operator_1("Cam_CamP_restore", "restore CamP", "FILE_TEXT"),
@@ -304,7 +306,7 @@ categories["mp_cam_and_tex"]["row_data"] = [
     ("obj visibility -frames", 3),
     ("", 0),
     ("CamP operations", 1),
-    ("", 1),   
+    ("", 3),
     ("", 2),
     ("", 0),
     ("Main Cam operations", 2),
