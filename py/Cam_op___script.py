@@ -136,6 +136,77 @@ class Cam_Switch:
             bpy.utils.register_class(CamP_fit_to_active_Operator)
 
         bpy.ops.object.camp_fit_to_active('INVOKE_DEFAULT')
+
+    @staticmethod
+    def copy_cam_params_to_clipboard():
+        active_camera = bpy.context.scene.camera
+        if not active_camera:
+            bpy.context.window_manager.popup_menu(
+                lambda self, context: self.layout.label(text="Error: No active camera."),
+                title="Error",
+                icon='ERROR'
+            )
+            return
+
+        camera_params = {
+            "lens": active_camera.data.lens,
+            "shift_x": active_camera.data.shift_x,
+            "shift_y": active_camera.data.shift_y,
+            "clip_start": active_camera.data.clip_start,
+            "clip_end": active_camera.data.clip_end,
+            "sensor_width": active_camera.data.sensor_width,
+            "location": list(active_camera.location),
+            "rotation_euler": list(active_camera.rotation_euler)
+        }
+
+        import json
+        bpy.context.window_manager.clipboard = json.dumps(camera_params)
+        bpy.context.window_manager.popup_menu(
+            lambda self, context: self.layout.label(text="Camera parameters copied to clipboard."),
+            title="Success",
+            icon='INFO'
+        )
+
+    @staticmethod
+    def apply_cam_params_from_clipboard():
+        active_camera = bpy.context.scene.camera
+        if not active_camera:
+            bpy.context.window_manager.popup_menu(
+                lambda self, context: self.layout.label(text="Error: No active camera."),
+                title="Error",
+                icon='ERROR'
+            )
+            return
+
+        clipboard_content = bpy.context.window_manager.clipboard
+
+        import json
+
+        try:
+            camera_params = json.loads(clipboard_content)
+            if not isinstance(camera_params, dict) or not all(key in camera_params for key in ["lens", "shift_x", "shift_y", "clip_start", "clip_end", "sensor_width", "location", "rotation_euler"]):
+                raise ValueError("Clipboard content is not a valid camera parameter dictionary.")
+        except (json.JSONDecodeError, ValueError) as e:
+            bpy.context.window_manager.popup_menu(
+                lambda self, context: self.layout.label(text=f"Error: no camera parameters in clipboard. {e}"),
+                title="Error",
+                icon='ERROR'
+            )
+            return
+
+        for attr, value in camera_params.items():
+            if attr == "location":
+                active_camera.location = value
+            elif attr == "rotation_euler":
+                active_camera.rotation_euler = value
+            else:
+                setattr(active_camera.data, attr, value)
+
+        bpy.context.window_manager.popup_menu(
+            lambda self, context: self.layout.label(text="Camera parameters applied from clipboard."),
+            title="Success",
+            icon='INFO'
+        )
                 
     @staticmethod
     def QShot_combine():
