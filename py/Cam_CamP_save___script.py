@@ -134,7 +134,7 @@ class BackupCamPParametersOperator(Operator):
 
     def update_base_path(self, original_title):
         base_path = bpy.data.scenes[bpy.context.scene.name].node_tree.nodes["Output_path_MP"].base_path
-        new_base_path = f"//multires_projecting/{original_title}/{{camera}}"
+        new_base_path = f"//multires_projecting/{original_title}/"
         bpy.data.scenes[bpy.context.scene.name].node_tree.nodes["Output_path_MP"].base_path = new_base_path
 
     def invoke(self, context, event):
