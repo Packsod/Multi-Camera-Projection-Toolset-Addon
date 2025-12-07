@@ -1,6 +1,3 @@
-#!/usr/bin/env python
-# -*- coding: utf-8 -*-
-
 import bpy
 import os
 
@@ -142,9 +139,10 @@ if obj and obj.type == 'MESH' and obj.active_material and obj.active_material.us
 
     # ----------------------------------------------------
     # 14) Save the baked image to the original file path
-    img_new.image.filepath_raw = ref_img_path
-    img_new.image.file_format = 'PNG'
+    img_new.image.filepath_raw = os.path.splitext(ref_img_path)[0] + ".png"
+    img_new.image.file_format = "PNG"
     img_new.image.save()
+    img_new.image.name = os.path.basename(ref_img_path)
 
     # ----------------------------------------------------
     # 15) Restore render engine & bake settings
